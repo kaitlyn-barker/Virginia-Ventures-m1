@@ -1,0 +1,325 @@
+<style>
+  /* World-space Summer market trade panel (opened by MarketSystem). Game-style
+     barter UI:
+        HEADER  — trader name + greeting
+        BODY    — [YOUR GOODS] · [PROPOSAL] · [THEIR GOODS], each good a row of
+                  [colored icon + initial] [name] [qty]; selected rows glow gold.
+        RESPONSE— the trader's spoken reply
+        METER   — fairness bar (red Bad deal · green Fair · blue Generous) + needle
+        FOOTER  — Cancel / Propose Trade (green when fair, gray otherwise)
+        BANNER  — "Trade Complete!" flashes on a successful deal.
+     MarketSystem fills counts/names/icons, slides the needle, recolors Propose,
+     and toggles the banner at runtime. Parchment palette. */
+  .trade-panel {
+    display: flex;
+    flex-direction: column;
+    width: 92;
+    padding: 2.5;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.2;
+    border-radius: 3;
+  }
+
+  /* HEADER */
+  .npc-name {
+    font-size: 3.4;
+    font-weight: bold;
+    color: #f4ead2;
+    text-align: left;
+  }
+  .npc-greeting {
+    font-size: 1.7;
+    color: #cbb78f;
+    text-align: left;
+    margin-top: 0.4;
+    margin-bottom: 1.2;
+  }
+
+  /* BODY: three columns. */
+  .trade-body {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-basis: 0;
+    padding: 1.2;
+    margin-left: 0.5;
+    margin-right: 0.5;
+    background-color: #322619;
+    border-radius: 1.5;
+  }
+  .col-title {
+    font-size: 1.7;
+    font-weight: bold;
+    color: #e3b23c;
+    text-align: left;
+    margin-bottom: 0.9;
+  }
+
+  /* One good row: [icon] [name] [qty]. The whole row is clickable; selected
+     rows are restyled by the system (gold border + lifted background). */
+  .good-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 0.6;
+    padding-top: 0.5;
+    padding-bottom: 0.5;
+    padding-left: 0.7;
+    padding-right: 0.7;
+    background-color: #3a2e22;
+    border-color: #3a2e22;
+    border-width: 0.14;
+    border-radius: 1;
+    cursor: pointer;
+  }
+
+  /* Colored circle "icon" with a single-initial letter inside. */
+  .gi {
+    width: 2.4;
+    height: 2.4;
+    border-radius: 1.2;
+    margin-right: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #5a8fc7;
+  }
+  .gi-letter {
+    font-size: 1.4;
+    font-weight: bold;
+    color: #1b140d;
+    text-align: center;
+  }
+  .gi-corn {
+    background-color: #e3b23c;
+  }
+  .gi-tobacco {
+    background-color: #6f8f3f;
+  }
+  .gi-goods {
+    background-color: #5a8fc7;
+  }
+
+  .good-name {
+    flex-grow: 1;
+    font-size: 1.5;
+    color: #e8dcc0;
+    text-align: left;
+  }
+  .good-qty {
+    font-size: 1.5;
+    font-weight: bold;
+    color: #f4ead2;
+    text-align: right;
+  }
+
+  /* CENTER proposal column. */
+  .proposal-label {
+    font-size: 1.4;
+    color: #9a8f7a;
+    text-align: left;
+    margin-top: 0.6;
+  }
+  .proposal-val {
+    font-size: 1.7;
+    font-weight: medium;
+    color: #f4ead2;
+    text-align: left;
+  }
+
+  .npc-response {
+    font-size: 1.7;
+    color: #a9d6ef;
+    text-align: left;
+    margin-top: 1;
+    margin-bottom: 0.2;
+  }
+
+  /* FAIRNESS METER: a track with three colored zones + an absolute needle. */
+  .meter {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 1;
+  }
+  .meter-track {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 86;
+    height: 1.6;
+    border-radius: 0.8;
+    background-color: #1b140d;
+  }
+  .meter-zone {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 1.6;
+  }
+  .zone-bad {
+    background-color: #b8473f;
+    border-radius: 0.8;
+  }
+  .zone-fair {
+    background-color: #4a8c3f;
+  }
+  .zone-gen {
+    background-color: #3a5a8c;
+    border-radius: 0.8;
+  }
+  /* The needle: an absolutely-positioned bright marker the system slides along
+     the track to point at the current fairness. */
+  .meter-needle {
+    position: absolute;
+    positionType: absolute;
+    positionTop: -0.4;
+    positionLeft: 0;
+    width: 0.8;
+    height: 2.4;
+    border-radius: 0.4;
+    background-color: #f8f0d8;
+    border-color: #1b140d;
+    border-width: 0.1;
+  }
+  .meter-label {
+    font-size: 1.7;
+    font-weight: bold;
+    color: #cbb78f;
+    text-align: center;
+    margin-top: 0.6;
+  }
+
+  /* FOOTER */
+  .trade-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: 1.2;
+  }
+  .action-btn {
+    padding-top: 1;
+    padding-bottom: 1;
+    padding-left: 1.6;
+    padding-right: 1.6;
+    margin-left: 0.8;
+    border-radius: 1.2;
+    font-size: 1.8;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+  }
+  .cancel {
+    background-color: #6b4f3a;
+    color: #f4ead2;
+  }
+  .propose {
+    background-color: #4a8c3f;
+    color: #eafce6;
+  }
+
+  /* "Trade Complete!" banner — hidden until a deal lands. */
+  .banner {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1.1;
+    padding-top: 0.8;
+    padding-bottom: 0.8;
+    background-color: #4a8c3f;
+    border-radius: 1.2;
+  }
+  .banner-text {
+    font-size: 2.1;
+    font-weight: bold;
+    color: #eafce6;
+    text-align: center;
+  }
+</style>
+<div id="trade-root" class="trade-panel">
+  <span id="npc-name" class="npc-name">Trader</span>
+  <span id="npc-greeting" class="npc-greeting">Greeting</span>
+
+  <div class="trade-body">
+    <!-- LEFT: the player's goods -->
+    <div class="col">
+      <span class="col-title">YOUR GOODS</span>
+      <div id="btn-give-corn" class="good-row">
+        <div class="gi gi-corn"><span class="gi-letter">C</span></div>
+        <span class="good-name">Corn</span>
+        <span id="give-qty-corn" class="good-qty">0</span>
+      </div>
+      <div id="btn-give-tobacco" class="good-row">
+        <div class="gi gi-tobacco"><span class="gi-letter">T</span></div>
+        <span class="good-name">Tobacco</span>
+        <span id="give-qty-tobacco" class="good-qty">0</span>
+      </div>
+      <div id="btn-give-trade_goods" class="good-row">
+        <div class="gi gi-goods"><span class="gi-letter">G</span></div>
+        <span class="good-name">Goods</span>
+        <span id="give-qty-trade_goods" class="good-qty">0</span>
+      </div>
+    </div>
+
+    <!-- CENTER: the proposal -->
+    <div class="col">
+      <span class="col-title">PROPOSAL</span>
+      <span class="proposal-label">You Give</span>
+      <span id="give-list" class="proposal-val">-</span>
+      <span class="proposal-label">You Receive</span>
+      <span id="receive-list" class="proposal-val">-</span>
+    </div>
+
+    <!-- RIGHT: the trader's goods (up to 4 offers; unused are hidden) -->
+    <div class="col">
+      <span class="col-title">THEIR GOODS</span>
+      <div id="btn-their-0" class="good-row">
+        <div id="their-icon-0" class="gi"><span id="their-letter-0" class="gi-letter"></span></div>
+        <span id="their-name-0" class="good-name">-</span>
+        <span id="their-qty-0" class="good-qty"></span>
+      </div>
+      <div id="btn-their-1" class="good-row">
+        <div id="their-icon-1" class="gi"><span id="their-letter-1" class="gi-letter"></span></div>
+        <span id="their-name-1" class="good-name">-</span>
+        <span id="their-qty-1" class="good-qty"></span>
+      </div>
+      <div id="btn-their-2" class="good-row">
+        <div id="their-icon-2" class="gi"><span id="their-letter-2" class="gi-letter"></span></div>
+        <span id="their-name-2" class="good-name">-</span>
+        <span id="their-qty-2" class="good-qty"></span>
+      </div>
+      <div id="btn-their-3" class="good-row">
+        <div id="their-icon-3" class="gi"><span id="their-letter-3" class="gi-letter"></span></div>
+        <span id="their-name-3" class="good-name">-</span>
+        <span id="their-qty-3" class="good-qty"></span>
+      </div>
+    </div>
+  </div>
+
+  <span id="npc-response" class="npc-response"></span>
+
+  <div class="meter">
+    <div class="meter-track">
+      <div class="meter-zone zone-bad"></div>
+      <div class="meter-zone zone-fair"></div>
+      <div class="meter-zone zone-gen"></div>
+      <div id="meter-needle" class="meter-needle"></div>
+    </div>
+    <span id="fairness" class="meter-label">Choose goods to trade</span>
+  </div>
+
+  <div class="trade-footer">
+    <button id="btn-cancel" class="action-btn cancel">Cancel</button>
+    <button id="btn-propose" class="action-btn propose">Propose Trade</button>
+  </div>
+
+  <div id="trade-banner" class="banner">
+    <span class="banner-text">Trade Complete!</span>
+  </div>
+</div>

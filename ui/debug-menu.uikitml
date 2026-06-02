@@ -1,0 +1,120 @@
+<style>
+  /* DEV-ONLY test menu (top-right). Toggled with the backquote key and only
+     ever registered when import.meta.env.DEV is true, so it is stripped from
+     production builds entirely. Lets a tester jump between phases with sane
+     seed data, reset, watch the live scores, and nudge each pillar. */
+  .menu {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 42;
+    padding: 1.6;
+    background-color: #15110c;
+    border-color: #6f7bd6;
+    border-width: 0.2;
+    border-radius: 2;
+  }
+
+  .title {
+    font-size: 2.1;
+    font-weight: bold;
+    color: #aeb6ff;
+    text-align: center;
+    margin-bottom: 0.6;
+  }
+
+  .phase {
+    font-size: 1.7;
+    font-weight: medium;
+    color: #f4ead2;
+    text-align: center;
+    margin-bottom: 0.8;
+  }
+
+  .section {
+    font-size: 1.4;
+    font-weight: medium;
+    color: #9aa0b8;
+    text-align: left;
+    margin-top: 0.8;
+    margin-bottom: 0.4;
+  }
+
+  .row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-between;
+  }
+
+  .scorebox {
+    flex-grow: 1;
+    margin-left: 0.2;
+    margin-right: 0.2;
+    padding-top: 0.5;
+    padding-bottom: 0.5;
+    background-color: #221c14;
+    border-radius: 1;
+    font-size: 1.5;
+    color: #ffe7a8;
+    text-align: center;
+  }
+
+  .btn {
+    flex-grow: 1;
+    margin-left: 0.2;
+    margin-right: 0.2;
+    margin-top: 0.2;
+    margin-bottom: 0.2;
+    padding-top: 0.6;
+    padding-bottom: 0.6;
+    background-color: #2c3470;
+    color: #eef0ff;
+    border-radius: 1;
+    font-size: 1.4;
+    font-weight: medium;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .reset {
+    background-color: #6b2b2b;
+    margin-top: 0.6;
+  }
+
+  .hint {
+    font-size: 1.2;
+    color: #6b7088;
+    text-align: center;
+    margin-top: 0.8;
+  }
+</style>
+<div id="debug-root" class="menu">
+  <span class="title">DEBUG MENU</span>
+  <span id="dbg-phase" class="phase">Phase: Arrival</span>
+
+  <div class="row">
+    <span id="dbg-food" class="scorebox">Food 50</span>
+    <span id="dbg-wealth" class="scorebox">Wealth 50</span>
+    <span id="dbg-rep" class="scorebox">Rep 50</span>
+  </div>
+  <span id="dbg-prosperity" class="phase">Prosperity 50 (F)</span>
+
+  <span class="section">Skip to phase (seeds test data)</span>
+  <div class="row">
+    <button id="skip-Spring" class="btn">Spring</button>
+    <button id="skip-Summer" class="btn">Summer</button>
+    <button id="skip-Fall" class="btn">Fall</button>
+    <button id="skip-Winter" class="btn">Winter</button>
+  </div>
+
+  <span class="section">Adjust scores</span>
+  <div class="row">
+    <button id="add-food" class="btn">+10 Food</button>
+    <button id="add-wealth" class="btn">+10 Wealth</button>
+    <button id="add-rep" class="btn">+10 Rep</button>
+  </div>
+
+  <button id="dbg-reset" class="btn reset">Reset Game</button>
+  <span class="hint">Press ` (backquote) to toggle</span>
+</div>

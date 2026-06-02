@@ -1,0 +1,143 @@
+<style>
+  /* Persistent quest-style OBJECTIVE TRACKER, pinned to the right of the screen
+     (below where the score readout sits). Shows the current phase + a season
+     badge, the headline objective for the phase, and a checklist of sub-tasks.
+     ObjectiveTrackerSystem fills the rows at runtime: it sets the phase label,
+     recolors the season badge, writes each task's text, fills a task's circle
+     with a green check when it's done, and glows the next task to do.
+
+     Static markup, so we author the MAX number of rows (4) and the system
+     shows/hides + restyles them per phase. Palette matches the rest of the HUD
+     (aged parchment): welcome.uikitml / season-banner.uikitml / settlement-needs. */
+  .quest-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 46;
+    padding: 2;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.15;
+    border-radius: 3;
+  }
+
+  /* Header: [season badge] [phase name]. */
+  .quest-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 0.4;
+  }
+
+  /* The "season icon": a filled rounded badge tinted with the season's accent
+     color (Spring green, Summer gold, Fall orange, Winter white, Arrival cream).
+     Emoji glyphs render as tofu in the UI font, so — like the inventory icons —
+     the season cue is carried by COLOR, matching the brief's per-season colors. */
+  .quest-badge {
+    width: 3;
+    height: 3;
+    border-radius: 1.5;
+    margin-right: 1;
+    background-color: #f4f0e6;
+    border-width: 0.12;
+    border-color: #00000055;
+  }
+
+  .quest-phase {
+    flex-grow: 1;
+    font-size: 2.4;
+    font-weight: bold;
+    color: #f4ead2;
+    text-align: left;
+  }
+
+  /* Small eyebrow label above the objective sentence. */
+  .quest-eyebrow {
+    font-size: 1.2;
+    font-weight: bold;
+    color: #c79a4b;
+    text-align: left;
+    margin-bottom: 0.2;
+  }
+
+  .quest-title {
+    font-size: 1.85;
+    color: #e8dcc0;
+    text-align: left;
+    margin-bottom: 1;
+  }
+
+  /* One sub-task row: [circle] [label]. */
+  .quest-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0.7;
+    padding-top: 0.6;
+    padding-bottom: 0.6;
+    padding-left: 0.8;
+    padding-right: 0.8;
+    background-color: #322619;
+    border-radius: 1.2;
+    border-width: 0.12;
+    border-color: #322619;
+  }
+
+  /* The checklist circle. Hollow when to-do; the system fills it green and drops
+     a check inside when the task is done, and glows its border when it's next. */
+  .quest-circle {
+    width: 2.4;
+    height: 2.4;
+    border-radius: 1.2;
+    margin-right: 1;
+    background-color: #2a2018;
+    border-width: 0.22;
+    border-color: #6b5a3c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* The check mark drawn inside a completed circle. '✓' renders in the UI
+     font (the needs checklist uses it too); the system sets it to '' when the
+     task is still open. */
+  .quest-check {
+    font-size: 1.7;
+    font-weight: bold;
+    color: #1d2a12;
+    text-align: center;
+  }
+
+  .quest-label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    font-size: 1.6;
+    color: #cbb78f;
+    text-align: left;
+  }
+</style>
+<div id="quest-root" class="quest-panel">
+  <div class="quest-header">
+    <div id="quest-badge" class="quest-badge"></div>
+    <span id="quest-phase" class="quest-phase">Arrival</span>
+  </div>
+  <span class="quest-eyebrow">YOUR OBJECTIVE</span>
+  <span id="quest-title" class="quest-title">Objective</span>
+
+  <div id="quest-row-0" class="quest-row">
+    <div id="quest-circle-0" class="quest-circle"><span id="quest-check-0" class="quest-check"></span></div>
+    <span id="quest-label-0" class="quest-label">task</span>
+  </div>
+  <div id="quest-row-1" class="quest-row">
+    <div id="quest-circle-1" class="quest-circle"><span id="quest-check-1" class="quest-check"></span></div>
+    <span id="quest-label-1" class="quest-label">task</span>
+  </div>
+  <div id="quest-row-2" class="quest-row">
+    <div id="quest-circle-2" class="quest-circle"><span id="quest-check-2" class="quest-check"></span></div>
+    <span id="quest-label-2" class="quest-label">task</span>
+  </div>
+  <div id="quest-row-3" class="quest-row">
+    <div id="quest-circle-3" class="quest-circle"><span id="quest-check-3" class="quest-check"></span></div>
+    <span id="quest-label-3" class="quest-label">task</span>
+  </div>
+</div>

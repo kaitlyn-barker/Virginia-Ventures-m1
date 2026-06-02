@@ -1,0 +1,136 @@
+<style>
+  /* Bottom-of-view dialogue box for Thomas's Spring farming advice (opened by
+     ThomasAdviceSystem). Classic layout:
+        LEFT   — portrait (colored rect + initial + role)
+        RIGHT  — bold name, the spoken line (types out at ~30 cps), then the
+                 branching option buttons and a "Continue" once typing finishes.
+     ThomasAdviceSystem drives the typewriter, toggles the options/continue, and
+     swaps the body line per dialogue state. Parchment palette, gold border. */
+  .dlg-box {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 100%;
+    padding: 2;
+    background-color: #241a12;
+    background-opacity: 0.96;
+    border-color: #c79a4b;
+    border-width: 0.22;
+    border-radius: 2.4;
+  }
+
+  /* PORTRAIT: a colored card with the NPC's big initial + role. */
+  .portrait {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 16;
+    margin-right: 2;
+    padding-top: 1.4;
+    padding-bottom: 1.4;
+    background-color: #5a7a3a;
+    border-color: #c79a4b;
+    border-width: 0.16;
+    border-radius: 1.8;
+  }
+  .portrait-initial {
+    font-size: 7;
+    font-weight: bold;
+    color: #f4ead2;
+    text-align: center;
+  }
+  .portrait-role {
+    font-size: 1.6;
+    font-weight: medium;
+    color: #eafce6;
+    text-align: center;
+    margin-top: 0.4;
+  }
+
+  /* RIGHT: name + body + options + continue. */
+  .dlg-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-basis: 0;
+  }
+  .dlg-name {
+    font-size: 3;
+    font-weight: bold;
+    color: #e8c66a;
+    text-align: left;
+  }
+  .dlg-body {
+    flex-grow: 1;
+    font-size: 2;
+    color: #f4ead2;
+    text-align: left;
+    margin-top: 0.6;
+    margin-bottom: 1;
+  }
+
+  /* The two branching question buttons (parchment). Hidden until the line is
+     fully typed; hidden entirely on the closing line. */
+  .dlg-options {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    margin-bottom: 0.8;
+  }
+  .opt-btn {
+    flex-grow: 1;
+    flex-basis: 0;
+    padding-top: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 1.2;
+    padding-right: 1.2;
+    margin-right: 1;
+    background-color: #3a2e22;
+    border-color: #6b5a3c;
+    border-width: 0.12;
+    border-radius: 1.2;
+    color: #e8dcc0;
+    font-size: 1.6;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .dlg-footer {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  .advance-btn {
+    padding-top: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 2;
+    padding-right: 2;
+    background-color: #4a8c3f;
+    color: #eafce6;
+    border-radius: 1.2;
+    font-size: 1.9;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+  }
+</style>
+<div id="dlg-root" class="dlg-box">
+  <div class="portrait">
+    <span class="portrait-initial">T</span>
+    <span class="portrait-role">Farmer</span>
+  </div>
+  <div class="dlg-content">
+    <span id="dlg-name" class="dlg-name">Thomas</span>
+    <span id="dlg-body" class="dlg-body">Welcome, neighbor!</span>
+
+    <div id="dlg-options" class="dlg-options">
+      <button id="btn-corn" class="opt-btn">Tell me about corn.</button>
+      <button id="btn-tobacco" class="opt-btn">Tell me about tobacco.</button>
+    </div>
+
+    <div class="dlg-footer">
+      <button id="btn-advance" class="advance-btn">Got it</button>
+    </div>
+  </div>
+</div>

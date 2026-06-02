@@ -1,0 +1,40 @@
+<style>
+  /* Persistent season selector bar. Sits on screen from entry onward; each tab
+     is a button. The active season's tab is filled with its accent color so you
+     can always see which season you're in, and tap any tab to switch to it. */
+  .bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 1;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.15;
+    border-radius: 2.5;
+  }
+
+  .tab {
+    padding-top: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 1.1;
+    padding-right: 1.1;
+    margin-left: 0.3;
+    margin-right: 0.3;
+    border-radius: 1.2;
+    /* Inactive look; the system recolors the active tab at runtime. */
+    background-color: #3a2e22;
+    color: #cbb78f;
+    font-size: 1.9;
+    font-weight: medium;
+    text-align: center;
+    cursor: pointer;
+  }
+</style>
+<div id="banner-root" class="bar">
+  <button id="season-Arrival" class="tab">Arrival</button>
+  <button id="season-Spring" class="tab">Spring</button>
+  <button id="season-Summer" class="tab">Summer</button>
+  <button id="season-Fall" class="tab">Fall</button>
+  <button id="season-Winter" class="tab">Winter</button>
+</div>

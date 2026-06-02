@@ -1,0 +1,188 @@
+<style>
+  /* Game-style SCORE HUD, pinned top-left of the camera-anchored UI. Three
+     stat bars (Food / Wealth / Crown) over a dark glassy panel with a thin gold
+     border, plus a live "Colony Prosperity" average + letter grade.
+
+     ScoreHudSystem drives everything at runtime: it tweens each fill's width,
+     writes the values, floats a rising "+5 / -10" on change, shimmers a bar
+     above 75 / pulses it below 25, and recolors the grade badge. The colors
+     below are the brief's: Food #4A8C3F, Wealth #C9A84C, Crown #3A5A8C.
+
+     Emoji render as tofu in the UI font, so each bar's "icon" is a colored
+     swatch (wheat=green, coin=gold, crown=blue) — same approach as the
+     inventory HUD. */
+  .hud-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.6;
+    background-color: #1b140d;
+    background-opacity: 0.62;
+    border-color: #c79a4b;
+    border-width: 0.14;
+    border-radius: 2.2;
+  }
+
+  /* One stat row: [icon] [track [fill]] [value], with a floater layered above. */
+  .hud-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0.45;
+    margin-bottom: 0.45;
+  }
+
+  .hud-icon {
+    width: 2.4;
+    height: 2.4;
+    border-radius: 0.7;
+    margin-right: 0.9;
+    border-width: 0.1;
+    border-color: #00000055;
+  }
+  .icon-food {
+    background-color: #4a8c3f;
+  }
+  .icon-wealth {
+    background-color: #c9a84c;
+  }
+  .icon-crown {
+    background-color: #3a5a8c;
+  }
+
+  /* The dark semi-transparent track. The fill is its left-anchored child. */
+  .hud-track {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 22;
+    height: 2.6;
+    border-radius: 1.3;
+    background-color: #000000;
+    background-opacity: 0.5;
+  }
+
+  /* The colored fill. Its width is set per-frame by the system (0..22); the
+     per-pillar color comes from the modifier classes below. */
+  .hud-fill {
+    width: 11;
+    height: 2.6;
+    border-radius: 1.3;
+    background-color: #4a8c3f;
+    border-width: 0;
+    border-color: #ffd77a;
+  }
+  .fill-food {
+    background-color: #4a8c3f;
+  }
+  .fill-wealth {
+    background-color: #c9a84c;
+  }
+  .fill-crown {
+    background-color: #3a5a8c;
+  }
+
+  .hud-value {
+    width: 7.5;
+    margin-left: 0.8;
+    font-size: 1.5;
+    font-weight: bold;
+    color: #f4ead2;
+    text-align: right;
+  }
+
+  /* The rising "+5 / -10" floater, layered over its row (absolute) as a small
+     dark pill so it stays readable over any bar color. The system sets its
+     text/color/opacity/offset and toggles display in lockstep with opacity. */
+  .hud-float {
+    positionType: absolute;
+    positionTop: 0.6;
+    positionLeft: 4.4;
+    padding-top: 0.15;
+    padding-bottom: 0.15;
+    padding-left: 0.7;
+    padding-right: 0.7;
+    border-radius: 0.8;
+    background-color: #15100a;
+    background-opacity: 0.86;
+    font-size: 1.55;
+    font-weight: bold;
+    color: #6dd06d;
+    opacity: 0;
+    display: none;
+    text-align: center;
+  }
+
+  /* Prosperity summary line: label + value + grade badge. */
+  .hud-prosperity {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0.9;
+    padding-top: 0.7;
+    border-top-width: 0.08;
+    border-color: #5b4226;
+  }
+
+  .hud-pros-label {
+    flex-grow: 1;
+    font-size: 1.45;
+    font-weight: medium;
+    color: #cbb78f;
+    text-align: left;
+  }
+
+  .hud-pros-value {
+    font-size: 1.7;
+    font-weight: bold;
+    color: #f4ead2;
+    margin-right: 0.8;
+    text-align: right;
+  }
+
+  /* The letter-grade badge — background recolored per grade at runtime. */
+  .hud-grade {
+    width: 2.8;
+    height: 2.8;
+    border-radius: 0.8;
+    background-color: #c9a84c;
+    color: #1b140d;
+    font-size: 1.9;
+    font-weight: bold;
+    text-align: center;
+  }
+</style>
+<div id="hud-root" class="hud-panel">
+  <div id="hud-row-food" class="hud-row">
+    <div class="hud-icon icon-food"></div>
+    <div class="hud-track">
+      <div id="hud-fill-food" class="hud-fill fill-food"></div>
+    </div>
+    <span id="hud-value-food" class="hud-value">50/100</span>
+    <span id="hud-float-food" class="hud-float">+0</span>
+  </div>
+
+  <div id="hud-row-wealth" class="hud-row">
+    <div class="hud-icon icon-wealth"></div>
+    <div class="hud-track">
+      <div id="hud-fill-wealth" class="hud-fill fill-wealth"></div>
+    </div>
+    <span id="hud-value-wealth" class="hud-value">50/100</span>
+    <span id="hud-float-wealth" class="hud-float">+0</span>
+  </div>
+
+  <div id="hud-row-crown" class="hud-row">
+    <div class="hud-icon icon-crown"></div>
+    <div class="hud-track">
+      <div id="hud-fill-crown" class="hud-fill fill-crown"></div>
+    </div>
+    <span id="hud-value-crown" class="hud-value">50/100</span>
+    <span id="hud-float-crown" class="hud-float">+0</span>
+  </div>
+
+  <div class="hud-prosperity">
+    <span class="hud-pros-label">Colony Prosperity</span>
+    <span id="hud-pros-value" class="hud-pros-value">50</span>
+    <span id="hud-grade" class="hud-grade">F</span>
+  </div>
+</div>

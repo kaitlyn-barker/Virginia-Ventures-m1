@@ -1,0 +1,36 @@
+<style>
+  /* Cinematic title-card caption for the Arrival orientation tour. Driven by
+     ArrivalCinematic: pinned to the lower-center of the screen (and a
+     world-space panel in XR) while the camera glides across the colony. The
+     system swaps intro-title / intro-body text per shot and toggles intro-root's
+     display. Parchment/gold palette to match the rest of the colony UI. */
+  .intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 90;
+    padding: 2.5;
+    background-color: #241a0f;
+    border-color: #c79a4b;
+    border-width: 0.15;
+    border-radius: 2;
+  }
+
+  .intro-title {
+    font-size: 3;
+    font-weight: bold;
+    color: #e3b23c;
+    text-align: center;
+    margin-bottom: 0.8;
+  }
+
+  .intro-body {
+    font-size: 2;
+    color: #f4ead2;
+    text-align: center;
+  }
+</style>
+<div id="intro-root" class="intro">
+  <span id="intro-title" class="intro-title">...</span>
+  <span id="intro-body" class="intro-body">...</span>
+</div>

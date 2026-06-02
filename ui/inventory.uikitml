@@ -1,0 +1,87 @@
+<style>
+  /* Small "what I can trade" inventory readout, pinned bottom-left of the HUD
+     (just above the season banner). Three chips in a row: a colored icon
+     square, the good's name, and a live count. The InventoryHudSystem updates
+     each count at runtime; the icon colors are static (set here).
+
+     Palette matches welcome.uikitml / season-banner.uikitml (aged parchment). */
+  .inv-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding-top: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 2;
+    padding-right: 2;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.15;
+    border-radius: 2.5;
+  }
+
+  /* One good: [icon] [name] [count]. */
+  .inv-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-left: 0.6;
+    margin-right: 0.6;
+    padding-top: 0.5;
+    padding-bottom: 0.5;
+    padding-left: 0.8;
+    padding-right: 0.8;
+    background-color: #322619;
+    border-radius: 1.2;
+  }
+
+  /* The "icon" is a small colored square — emoji glyphs render as tofu in the
+     UI font, so we use solid color swatches instead (corn=gold, tobacco=green,
+     trade goods=blue). */
+  .inv-icon {
+    width: 1.6;
+    height: 1.6;
+    border-radius: 0.5;
+    margin-right: 0.7;
+  }
+
+  .icon-corn {
+    background-color: #e3b23c;
+  }
+
+  .icon-tobacco {
+    background-color: #6f8f3f;
+  }
+
+  .icon-trade {
+    background-color: #5a8fc7;
+  }
+
+  .inv-name {
+    font-size: 1.5;
+    color: #cbb78f;
+    margin-right: 0.6;
+  }
+
+  .inv-count {
+    font-size: 1.8;
+    font-weight: bold;
+    color: #f4ead2;
+  }
+</style>
+<div id="inv-root" class="inv-bar">
+  <div class="inv-item">
+    <div class="inv-icon icon-corn"></div>
+    <span class="inv-name">Corn</span>
+    <span id="inv-corn-count" class="inv-count">0</span>
+  </div>
+  <div class="inv-item">
+    <div class="inv-icon icon-tobacco"></div>
+    <span class="inv-name">Tobacco</span>
+    <span id="inv-tobacco-count" class="inv-count">0</span>
+  </div>
+  <div class="inv-item">
+    <div class="inv-icon icon-trade"></div>
+    <span class="inv-name">Goods</span>
+    <span id="inv-trade_goods-count" class="inv-count">0</span>
+  </div>
+</div>

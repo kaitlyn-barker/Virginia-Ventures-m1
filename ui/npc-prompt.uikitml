@@ -1,0 +1,36 @@
+<style>
+  /* Small "point-at-an-NPC" affordance. NpcPromptSystem shows this top-center
+     whenever the built-in pointer is hovering an NPC that is interactive in the
+     current phase, and hides it the instant the pointer leaves. Purely a visual
+     hint — it never changes who is interactive or what selecting does. */
+  /* Explicit UIKit width (in units) is REQUIRED: a screen-space panel scales its
+     natural content size up to the requested pixel width, so a short string with
+     no fixed width balloons to fill the viewport. Anchoring the natural width
+     here (and matching it to a px width on the ScreenSpace component) keeps the
+     font at a sane size — the same trick the tip toasts use. */
+  .prompt {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 30;
+    padding-top: 0.7;
+    padding-bottom: 0.7;
+    padding-left: 1.2;
+    padding-right: 1.2;
+    background-color: #1f1812;
+    border-color: #c79a4b;
+    border-width: 0.16;
+    border-radius: 1.6;
+  }
+
+  .prompt-text {
+    font-size: 1.7;
+    font-weight: medium;
+    color: #f4ead2;
+    text-align: center;
+  }
+</style>
+<div id="prompt-root" class="prompt">
+  <span id="prompt-text" class="prompt-text">Select to talk</span>
+</div>

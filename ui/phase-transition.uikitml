@@ -1,0 +1,108 @@
+<style>
+  /* Full-screen chapter-transition overlay. A black backdrop fills the view and
+     a centered dark-parchment card announces the new season. PhaseTransitionSystem
+     fades the whole overlay's opacity in (0.5s) → holds (3s) → fades out (0.5s),
+     committing the new phase under the black. It sets the icon color, season
+     name, subtitle, and teaser per phase at runtime. */
+  /* A big square backdrop. ScreenSpace scales it to fill the viewport width;
+     being square it overflows (and so covers) the height too. A PanelUI root
+     needs a DEFINITE size — percentage roots collapse to zero. */
+  .overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 120;
+    height: 120;
+    background-color: #000000;
+  }
+
+  /* The chapter card itself: dark parchment, thick gold border. */
+  .card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4;
+    padding-bottom: 4;
+    padding-left: 7;
+    padding-right: 7;
+    background-color: #241a12;
+    border-color: #c79a4b;
+    border-width: 0.32;
+    border-radius: 2.8;
+  }
+
+  /* Large season "icon" — a colored swatch, tinted per season at runtime.
+     (Diamond/leaf/sun glyphs render as tofu in the UI font, so — like the rest
+     of the HUD — the season is carried by COLOR.) */
+  .season-icon {
+    width: 6;
+    height: 6;
+    border-radius: 1.2;
+    background-color: #e3b23c;
+    margin-bottom: 1;
+  }
+
+  .season-name {
+    font-size: 7;
+    font-weight: bold;
+    color: #e8c66a;
+    text-align: center;
+  }
+
+  /* Thin ornamental divider: a line, a small diamond, a line. */
+  .divider {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 58;
+    margin-top: 1.4;
+    margin-bottom: 1.4;
+  }
+  .divider-line {
+    flex-grow: 1;
+    height: 0.12;
+    background-color: #5b4226;
+  }
+  .divider-gem {
+    width: 0.9;
+    height: 0.9;
+    border-radius: 0.25;
+    background-color: #c79a4b;
+    margin-left: 1.1;
+    margin-right: 1.1;
+  }
+
+  .subtitle {
+    font-size: 3;
+    font-weight: medium;
+    color: #cbb78f;
+    text-align: center;
+  }
+
+  .teaser {
+    font-size: 3.3;
+    color: #f4ead2;
+    text-align: center;
+    margin-top: 1.2;
+    max-width: 56;
+  }
+</style>
+<div id="trans-overlay" class="overlay">
+  <div class="card">
+    <div id="trans-icon" class="season-icon"></div>
+    <span id="trans-name" class="season-name">Spring</span>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-gem"></div>
+      <div class="divider-line"></div>
+    </div>
+    <span id="trans-subtitle" class="subtitle">Planting Season</span>
+    <span id="trans-teaser" class="teaser">Your land awaits. What will you grow?</span>
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-gem"></div>
+      <div class="divider-line"></div>
+    </div>
+  </div>
+</div>

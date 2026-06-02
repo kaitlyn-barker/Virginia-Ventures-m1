@@ -1,0 +1,169 @@
+<style>
+  /* Winter Results Dashboard (Part B). A world-space parchment panel shown at
+     the end of the year. ResultsDashboard.ts fills the three score numbers, the
+     bar widths, the +/- change tags, and the earned Colony Title at runtime —
+     every dynamic value ships with a placeholder here. Dark/gold/cream colonial
+     palette, matching welcome.uikitml / fall-summary.uikitml.
+
+     NOTE on the icon glyphs (🌽 🪙 👑): the bundled UIKit font is limited (it
+     already warns on the em-dash), so emoji may not render. They're included
+     per the brief; the pillar label carries the meaning if a glyph is missing. */
+  .dash {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 74;
+    padding: 3;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.2;
+    border-radius: 3;
+  }
+  .dash-title {
+    font-size: 3.4;
+    font-weight: medium;
+    color: #f4ead2;
+    text-align: center;
+    margin-bottom: 1.6;
+  }
+
+  /* One score row: [icon] [pillar name] [bar track > bar fill] [number] [tag]. */
+  .score-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-top: 0.9;
+    padding-top: 0.5;
+    padding-bottom: 0.5;
+  }
+  .icon {
+    width: 4;
+    font-size: 2.6;
+    text-align: center;
+    margin-right: 0.6;
+  }
+  .pillar {
+    width: 17;
+    font-size: 1.8;
+    color: #e8dcc0;
+    text-align: left;
+  }
+  /* The bar TRACK is a flex container; the FILL inside it gets its width set in
+     code (fill width = track width × score / 100). */
+  .bar-track {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 26;
+    height: 1.5;
+    background-color: #322619;
+    border-radius: 0.75;
+    margin-left: 0.5;
+    margin-right: 1.2;
+  }
+  .bar-fill {
+    width: 13;
+    height: 1.5;
+    background-color: #c79a4b;
+    border-radius: 0.75;
+  }
+  .num {
+    width: 8.5;
+    font-size: 1.8;
+    font-weight: medium;
+    color: #f4ead2;
+    text-align: right;
+    margin-right: 1;
+  }
+  /* The change tag; its color (green/red) is set per-row at runtime. */
+  .tag {
+    width: 6.5;
+    font-size: 1.8;
+    font-weight: bold;
+    color: #cbb78f;
+    text-align: right;
+  }
+
+  /* Thin gold divider between the rows and the Colony Title. */
+  .divider {
+    height: 0.18;
+    background-color: #5b4226;
+    border-radius: 0.4;
+    margin-top: 1.8;
+    margin-bottom: 1.4;
+  }
+
+  .title-label {
+    font-size: 1.5;
+    color: #cbb78f;
+    text-align: center;
+    margin-bottom: 0.2;
+  }
+  .colony-title {
+    font-size: 3;
+    font-weight: bold;
+    color: #e3b23c;
+    text-align: center;
+    margin-bottom: 0.3;
+  }
+  /* One-line subtitle naming the strongest pillar (set at runtime). */
+  .colony-subtitle {
+    font-size: 1.7;
+    color: #cbb78f;
+    text-align: center;
+    margin-bottom: 1.6;
+  }
+
+  #reflect-btn {
+    margin-top: 0.6;
+    padding-top: 1.2;
+    padding-bottom: 1.2;
+    background-color: #c79a4b;
+    color: #2a2018;
+    border-radius: 1.4;
+    border-width: 0.1;
+    border-color: #e0c074;
+    font-size: 2.2;
+    font-weight: medium;
+    text-align: center;
+    cursor: pointer;
+  }
+</style>
+<div id="dash-root" class="dash">
+  <span class="dash-title">Your First Year in Virginia</span>
+
+  <!-- Food Supply -->
+  <div class="score-row">
+    <span class="icon">🌽</span>
+    <span class="pillar">Food Supply</span>
+    <div class="bar-track"><div id="bar-food" class="bar-fill"></div></div>
+    <span id="num-food" class="num">50/100</span>
+    <span id="tag-food" class="tag">+0</span>
+  </div>
+
+  <!-- Trade Wealth -->
+  <div class="score-row">
+    <span class="icon">🪙</span>
+    <span class="pillar">Trade Wealth</span>
+    <div class="bar-track"><div id="bar-wealth" class="bar-fill"></div></div>
+    <span id="num-wealth" class="num">50/100</span>
+    <span id="tag-wealth" class="tag">+0</span>
+  </div>
+
+  <!-- Crown Reputation -->
+  <div class="score-row">
+    <span class="icon">👑</span>
+    <span class="pillar">Crown Reputation</span>
+    <div class="bar-track"><div id="bar-rep" class="bar-fill"></div></div>
+    <span id="num-rep" class="num">50/100</span>
+    <span id="tag-rep" class="tag">+0</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <span class="title-label">Your colony will be remembered as</span>
+  <span id="colony-title" class="colony-title">Steady Settlement</span>
+  <span id="colony-subtitle" class="colony-subtitle">Your strength was Food Supply.</span>
+
+  <button id="reflect-btn">Reflect on Your Year</button>
+</div>

@@ -1,0 +1,77 @@
+<style>
+  /* Fall, Step 4 (Choice A) — the simplified Dutch smuggling trade. Tobacco only,
+     15 gold each, NO Crown tax. SmugglingChoice fills the owned/selected/value
+     labels and resolves the deal (with its discovery roll) on "Conclude". Same
+     grimy olive palette as the smuggler panel. */
+  .dutch {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 60;
+    padding: 2.5;
+    background-color: #20241a;
+    border-color: #4a5a2a;
+    border-width: 0.3;
+    border-radius: 2;
+  }
+  .dutch-title {
+    font-size: 2.8;
+    font-weight: bold;
+    color: #b9a14a;
+    text-align: left;
+  }
+  .dutch-sub {
+    font-size: 1.6;
+    color: #9aa67a;
+    text-align: left;
+    margin-top: 0.3;
+    margin-bottom: 1.2;
+  }
+  .dutch-owned {
+    font-size: 1.8;
+    color: #cfcab0;
+    text-align: left;
+    margin-bottom: 0.8;
+  }
+  #dutch-tobacco {
+    padding-top: 1;
+    padding-bottom: 1;
+    padding-left: 1.4;
+    padding-right: 1.4;
+    background-color: #3a4a22;
+    color: #e0e8c0;
+    border-radius: 1.2;
+    font-size: 1.9;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 0.8;
+  }
+  .dutch-value {
+    font-size: 2.2;
+    font-weight: bold;
+    color: #c8b24a;
+    text-align: left;
+    margin-bottom: 1.2;
+  }
+  #dutch-deal {
+    padding-top: 1.1;
+    padding-bottom: 1.1;
+    background-color: #6a7a3a;
+    color: #1c2010;
+    border-radius: 1.2;
+    font-size: 2;
+    font-weight: medium;
+    text-align: center;
+    cursor: pointer;
+  }
+</style>
+<div id="dutch-root" class="dutch">
+  <span class="dutch-title">Dutch Merchant (Upstream)</span>
+  <span class="dutch-sub">No Crown. No tax. No questions. 15 gold per tobacco.</span>
+
+  <span id="dutch-owned" class="dutch-owned">Your tobacco: x0</span>
+  <button id="dutch-tobacco">Smuggle: 0 tobacco</button>
+  <span id="dutch-value" class="dutch-value">You receive: 0 gold</span>
+
+  <button id="dutch-deal">Conclude the Deal</button>
+</div>

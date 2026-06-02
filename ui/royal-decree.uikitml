@@ -1,0 +1,119 @@
+<style>
+  /* THE ROYAL DECREE (Fall, Step 2). A parchment proclamation that lays out the
+     Crown's three mercantilism rules. RoyalDecreeSystem fades the rules in one
+     at a time, then reveals the Captain's closing line + the Continue button —
+     so several elements here start hidden and are shown at runtime (the system
+     sets their display + opacity; their authored text is the source of truth).
+
+     Palette per the brief: parchment #E8D5B0 body, dark-brown #3D2B1F border &
+     header, a dark-red #8B2500 wax seal stamped with a gold "R". */
+  .decree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 62;
+    padding: 3;
+    background-color: #e8d5b0;
+    border-color: #3d2b1f;
+    border-width: 0.4;
+    border-radius: 1.5;
+  }
+
+  /* Wax seal: a dark-red disc (square + half-width border-radius = circle) with
+     a gold "R" centered in it. ~80px-equivalent at the panel's authored scale. */
+  .seal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 11;
+    height: 11;
+    border-radius: 5.5;
+    background-color: #8b2500;
+    border-width: 0.25;
+    border-color: #6e1d00;
+    margin-bottom: 1;
+  }
+
+  .seal-r {
+    font-size: 6;
+    font-weight: bold;
+    color: #d4af37;
+    text-align: center;
+  }
+
+  /* Large serif-weight dark-brown header (UIKit has one font family; bold +
+     dark brown reads as the official "engrossed" proclamation hand). */
+  .decree-header {
+    font-size: 4;
+    font-weight: bold;
+    color: #3d2b1f;
+    text-align: center;
+    margin-bottom: 0.4;
+  }
+
+  .decree-sub {
+    font-size: 1.6;
+    color: #5a4632;
+    text-align: center;
+    margin-bottom: 1.5;
+  }
+
+  .rule {
+    font-size: 1.9;
+    color: #3d2b1f;
+    text-align: left;
+    margin-top: 0.7;
+    margin-bottom: 0.7;
+  }
+
+  .captain-line {
+    font-size: 1.9;
+    font-weight: medium;
+    color: #6e1d00;
+    text-align: center;
+    margin-top: 1.5;
+  }
+
+  #decree-continue {
+    margin-top: 1.6;
+    padding-top: 1;
+    padding-bottom: 1;
+    padding-left: 3;
+    padding-right: 3;
+    background-color: #3d2b1f;
+    color: #e8d5b0;
+    border-radius: 1;
+    border-width: 0.1;
+    border-color: #6e1d00;
+    font-size: 2.2;
+    font-weight: medium;
+    text-align: center;
+    cursor: pointer;
+  }
+</style>
+<div id="decree-root" class="decree">
+  <div id="decree-seal" class="seal"><span class="seal-r">R</span></div>
+
+  <span class="decree-header">BY ORDER OF THE CROWN</span>
+  <span class="decree-sub">Royal Trading Company - Laws of Trade</span>
+
+  <span id="decree-rule-0" class="rule"
+    >Rule 1. All tobacco MUST be sold to English merchants only. You may NOT
+    trade tobacco with other colonies or foreign merchants.</span
+  >
+  <span id="decree-rule-1" class="rule"
+    >Rule 2. Manufactured goods such as tools, cloth, and finished products may
+    ONLY be purchased from England. You may NOT produce your own.</span
+  >
+  <span id="decree-rule-2" class="rule"
+    >Rule 3. A tax of 20% applies to all tobacco exports. For every 5 units of
+    tobacco sold, 1 unit goes to the Crown as tax.</span
+  >
+
+  <span id="decree-captain" class="captain-line"
+    >"Follow these rules, and the Crown will look favorably upon your colony.
+    Ignore them... and there will be consequences."</span
+  >
+
+  <button id="decree-continue">Continue</button>
+</div>

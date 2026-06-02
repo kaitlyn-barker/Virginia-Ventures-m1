@@ -1,0 +1,29 @@
+<style>
+  /* Tiny floating "Trade" prompt. MarketSystem parks it above whichever stall
+     NPC the player is standing near (and hides it otherwise / while a trade is
+     open). Matches the parchment palette with a gold accent. */
+  .prompt {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-top: 0.8;
+    padding-bottom: 0.8;
+    padding-left: 1.6;
+    padding-right: 1.6;
+    background-color: #2a2018;
+    border-color: #c79a4b;
+    border-width: 0.15;
+    border-radius: 2;
+  }
+
+  .prompt-label {
+    font-size: 2.4;
+    font-weight: medium;
+    color: #f4ead2;
+    text-align: center;
+  }
+</style>
+<div id="prompt-root" class="prompt">
+  <span id="prompt-label" class="prompt-label">Trade</span>
+</div>

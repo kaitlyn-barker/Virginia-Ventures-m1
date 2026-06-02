@@ -1,0 +1,37 @@
+<style>
+  /* Cinematic subtitle caption for the Fall ship-arrival sequence. Driven by
+     TradeShipArrival: pinned to the bottom-center of the screen (and to a
+     world-space panel in XR) while the Captain speaks his two arrival lines.
+     The system swaps cap-body's text and toggles cap-root's display; the
+     speaker name (cap-name) is fixed. Parchment/gold palette to match the rest
+     of the colony UI. */
+  .cap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 90;
+    padding: 2;
+    background-color: #241a0f;
+    border-color: #c79a4b;
+    border-width: 0.15;
+    border-radius: 2;
+  }
+
+  .cap-name {
+    font-size: 2.2;
+    font-weight: bold;
+    color: #e3b23c;
+    text-align: left;
+    margin-bottom: 0.5;
+  }
+
+  .cap-body {
+    font-size: 2;
+    color: #f4ead2;
+    text-align: left;
+  }
+</style>
+<div id="cap-root" class="cap">
+  <span id="cap-name" class="cap-name">Captain Whitmore</span>
+  <span id="cap-body" class="cap-body">...</span>
+</div>
