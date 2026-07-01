@@ -15,6 +15,7 @@
 
 import {
   createSystem,
+  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -24,7 +25,11 @@ import {
   eq,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
+
 import { playerInventory } from '../game/PlayerInventory.js';
+import { gameState } from '../game/GameState.js';
+import { arrivalSequence } from '../game/ArrivalSequence.js';
 
 /** The HUD panel's UI config (compiled from ui/inventory.uikitml). */
 const PANEL_CONFIG = './ui/inventory.json';
@@ -60,7 +65,9 @@ export class InventoryHudSystem extends createSystem({
         // Persistent HUD: sit slightly farther than the default popup depth
         // (zOffset 0.2) so trade/dialogue/recap popups always render in front.
         zOffset: 0.26,
-      });
+      })
+      // XR: float the goods readout to the lower-left in front of the headset.
+      .addComponent(Follower, hudFollow(this.player.head, [-0.55, -0.5, -1.7]));
 
     // (2) When the document is ready (now or later), grab it and paint the
     //     current counts. `true` replays for an already-loaded panel.
@@ -72,6 +79,8 @@ export class InventoryHudSystem extends createSystem({
             entity.index
           ] as UIKitDocument | undefined;
           this.render(playerInventory.getAllItems());
+          // Hidden on the welcome/title screen; revealed on enter-colony below.
+          this.setHidden(gameState.currentPhase === 'Arrival');
         },
         true,
       ),
@@ -82,6 +91,20 @@ export class InventoryHudSystem extends createSystem({
     this.cleanupFuncs.push(
       playerInventory.onInventoryChanged((items) => this.render(items)),
     );
+
+    // (4) Like the score HUD, stay hidden on the welcome/title screen and reveal
+    //     once the player enters the colony, so the HUDs never clutter or
+    //     overlap the centered welcome card.
+    this.cleanupFuncs.push(
+      arrivalSequence.onEnterColony(() => this.setHidden(false)),
+    );
+  }
+
+  /** Show/hide the whole HUD by toggling its root container's display. */
+  private setHidden(hidden: boolean): void {
+    (this.doc?.getElementById('inv-root') as UIKit.Container | null)?.setProperties({
+      display: hidden ? 'none' : 'flex',
+    });
   }
 
   /** Write each good's count into its HUD chip. */

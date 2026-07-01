@@ -31,7 +31,7 @@
 import {
   Vector3,
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -46,6 +46,7 @@ import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
 import { fallSequence } from '../game/FallSequence.js';
 import { fallProgress } from '../game/FallProgress.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 const PANEL_CONFIG = './ui/fall-summary.json';
 
@@ -124,7 +125,7 @@ export class TradeShipDeparture extends createSystem({
     this.panelEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: PANEL_CONFIG, maxWidth: 1.8, maxHeight: 1.6 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '12%',
         left: '24vw',
@@ -288,6 +289,7 @@ export class TradeShipDeparture extends createSystem({
   // ─────────────────────────────── continue → Winter ─────────────────────────
 
   private onContinue(): void {
+    sfx.click();
     this.active = false;
     this.setVisible(false);
     // Snapshot end-of-Fall, then advance. The score is a session singleton, so
@@ -337,7 +339,7 @@ export class TradeShipDeparture extends createSystem({
   private setVisible(visible: boolean): void {
     if (this.panelEntity?.object3D) this.panelEntity.object3D.visible = visible;
     this.container('sum-root')?.setProperties({ display: visible ? 'flex' : 'none' });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   private setDisplay(id: string, show: boolean): void {

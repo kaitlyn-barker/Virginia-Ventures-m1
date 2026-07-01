@@ -30,14 +30,20 @@ import {
 
 import { gameState, PHASE_ORDER, type GamePhase } from '../game/GameState.js';
 import { SEASON_ACCENT } from './seasons.js';
+import { sfx } from '../audio/Sfx.js';
 
 /** Tag marking the single entity that is the season selector banner. */
 export const SeasonBanner = createComponent('SeasonBanner', {});
 
-// Muted (inactive) tab colors; the active tab is painted with SEASON_ACCENT.
-const TAB_IDLE_BG = '#3a2e22';
-const TAB_IDLE_TEXT = '#cbb78f';
+// Tab palette for the three states of the locked progress tracker:
+//   • current  — filled with the season's accent color (bright, dark text)
+//   • done     — a phase you've finished and may revisit (medium parchment)
+//   • locked   — a future phase you haven't unlocked yet (dim, faded)
 const TAB_ACTIVE_TEXT = '#241a12'; // dark text reads well on every accent color
+const TAB_DONE_BG = '#5a4730';
+const TAB_DONE_TEXT = '#ecdcb6';
+const TAB_LOCKED_BG = '#241c14';
+const TAB_LOCKED_TEXT = '#6b5d45';
 
 export class SeasonBannerSystem extends createSystem({
   // Match the banner only once its UIKit document has loaded (PanelDocument is
@@ -81,14 +87,36 @@ export class SeasonBannerSystem extends createSystem({
   private wireTabs(doc: UIKitDocument): void {
     for (const phase of PHASE_ORDER) {
       const tab = doc.getElementById(`season-${phase}`) as UIKit.Text | null;
-      // Tapping a tab IS the season switch — the same call a console
-      // `game.setPhase('Summer')` would make. setPhase ignores a tap on the
-      // season you're already in, so re-tapping the active tab is harmless.
-      tab?.addEventListener('click', () => gameState.setPhase(phase));
+      tab?.addEventListener('click', () => this.onTabClick(phase));
     }
   }
 
-  /** Fill the active season's tab with its accent color; mute all the others. */
+  /**
+   * Handle a tab tap under the locked-progress rules:
+   *   • a LOCKED (future) season can't be selected — you must finish the prior
+   *     seasons in order (this is the soft-lock-proofing for young players);
+   *   • the 'Arrival' intro isn't a revisitable season once you've left it;
+   *   • otherwise switch to that already-reached season.
+   */
+  private onTabClick(phase: GamePhase): void {
+    // A locked future season buzzes a gentle "not yet" instead of doing nothing,
+    // so a young player gets clear feedback that they must finish in order.
+    if (!gameState.isPhaseUnlocked(phase)) {
+      sfx.error();
+      return;
+    }
+    if (phase === 'Arrival' && gameState.currentPhase !== 'Arrival') return;
+    if (phase === gameState.currentPhase) return; // already here — no sound
+    sfx.click();
+    gameState.setPhase(phase);
+  }
+
+  /**
+   * Paint each tab for its state: the current season gets its bright accent; a
+   * finished season gets the "done / revisit" parchment look; a not-yet-unlocked
+   * season is dimmed so a young player can see, at a glance, how far they've got
+   * and that future seasons are still locked.
+   */
   private refreshHighlight(doc: UIKitDocument, current: GamePhase): void {
     for (const phase of PHASE_ORDER) {
       const tab = doc.getElementById(`season-${phase}`) as UIKit.Text | null;
@@ -97,11 +125,19 @@ export class SeasonBannerSystem extends createSystem({
         tab.setProperties({
           backgroundColor: SEASON_ACCENT[phase],
           color: TAB_ACTIVE_TEXT,
+          opacity: 1,
+        });
+      } else if (gameState.isPhaseUnlocked(phase)) {
+        tab.setProperties({
+          backgroundColor: TAB_DONE_BG,
+          color: TAB_DONE_TEXT,
+          opacity: 1,
         });
       } else {
         tab.setProperties({
-          backgroundColor: TAB_IDLE_BG,
-          color: TAB_IDLE_TEXT,
+          backgroundColor: TAB_LOCKED_BG,
+          color: TAB_LOCKED_TEXT,
+          opacity: 0.55,
         });
       }
     }

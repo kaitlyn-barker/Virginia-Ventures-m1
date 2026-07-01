@@ -15,7 +15,7 @@
 
 import {
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -28,6 +28,7 @@ import {
 import { gameState } from '../game/GameState.js';
 import { summerProgress } from '../game/SummerProgress.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 const TUTORIAL_CONFIG = './ui/summer-tutorial.json';
 const TIP_CONFIG = './ui/summer-tip.json';
@@ -39,11 +40,11 @@ const IDLE_NUDGE_SECONDS = 25;
 const TIPS: Record<string, { title: string; body: string }> = {
   intro: {
     title: 'Tip',
-    body: 'Check the Settlement Needs on the left, then point at a trader and pull the trigger to barter. Aim for a green Fair Trade.',
+    body: 'Check the Settlement Needs on the left, then click a trader to barter (aim for a green Fair Trade). Visit as many traders as you like, then press Done Trading (lower right) to end Summer.',
   },
   nudge: {
     title: 'Tip',
-    body: 'Walk up to a trader and pull the trigger to start trading. The market stalls are by the well; the two farms are out at the edges.',
+    body: 'Click a trader to start trading. The market stalls are by the well; the two farms are out at the edges. Press Done Trading (lower right) when you are finished.',
   },
 };
 
@@ -100,7 +101,7 @@ export class SummerTutorialSystem extends createSystem({
         maxWidth: 1.7,
         maxHeight: 1.4,
       })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '22%',
         left: '24vw',
@@ -109,16 +110,21 @@ export class SummerTutorialSystem extends createSystem({
       });
     this.tutorialEntity.object3D!.visible = false;
 
-    // Tip / script toast (top-right corner), hidden until needed.
+    // Tip / script toast, hidden until needed.
     this.tipEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: TIP_CONFIG, maxWidth: 0.95, maxHeight: 0.62 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
+      // BOTTOM-CENTER: the trade panel owns the top/middle of the screen, so a
+      // trader's description (popped when a trade opens) used to land right on
+      // top of it. Parked low and centered, it tucks under the trade panel and
+      // between the bottom-corner HUDs (inventory left, Done Trading right)
+      // without covering any of them.
       .addComponent(ScreenSpace, {
-        top: '20px',
-        right: '20px',
-        width: '320px',
-        height: '210px',
+        top: '67%',
+        left: 'calc(50vw - 175px)',
+        width: '350px',
+        height: '23%',
       });
     this.tipEntity.object3D!.visible = false;
 
@@ -148,9 +154,10 @@ export class SummerTutorialSystem extends createSystem({
           this.tipDoc = PanelDocument.data.document[
             entity.index
           ] as UIKitDocument | undefined;
-          this.button(this.tipDoc, 'tip-dismiss')?.addEventListener('click', () =>
-            this.setTipVisible(false),
-          );
+          this.button(this.tipDoc, 'tip-dismiss')?.addEventListener('click', () => {
+            sfx.click();
+            this.setTipVisible(false);
+          });
           this.setTipVisible(false);
         },
         true,
@@ -206,6 +213,7 @@ export class SummerTutorialSystem extends createSystem({
   // ───────────────────────────── tips & scripts ──────────────────────────────
 
   private onBegin(): void {
+    sfx.click();
     this.setTutorialVisible(false);
     this.tutorialDismissed = true;
     this.postTip('intro');
@@ -241,7 +249,7 @@ export class SummerTutorialSystem extends createSystem({
     this.container(this.tutorialDoc, 'tut-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.tutorialDoc);
   }
 
   private setTipVisible(visible: boolean): void {
@@ -249,7 +257,7 @@ export class SummerTutorialSystem extends createSystem({
     this.container(this.tipDoc, 'tip-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.tipDoc);
   }
 
   // ─────────────────────────────── doc helpers ───────────────────────────────

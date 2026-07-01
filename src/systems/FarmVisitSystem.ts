@@ -99,15 +99,26 @@ export class FarmVisitSystem extends createSystem({
     // phase change (and apply the current phase right away).
     this.cleanupFuncs.push(
       gameState.onPhaseChanged((_old, next) =>
-        this.setFarmsVisitable(next === 'Summer'),
+        // Read-only on a revisited (finished) Summer, like the market — a player
+        // looking back can't re-visit a neighbour to change their final score.
+        this.setFarmsVisitable(
+          next === 'Summer' && !gameState.hasCompletedPhase('Summer'),
+        ),
       ),
     );
-    this.setFarmsVisitable(gameState.currentPhase === 'Summer');
+    this.setFarmsVisitable(
+      gameState.currentPhase === 'Summer' &&
+        !gameState.hasCompletedPhase('Summer'),
+    );
 
     // Open the shared trade panel when a farm is pressed.
     this.cleanupFuncs.push(
       this.queries.pressedFarms.subscribe('qualify', (entity) => {
-        if (gameState.currentPhase === 'Summer') this.openVisit(entity);
+        if (
+          gameState.currentPhase === 'Summer' &&
+          !gameState.hasCompletedPhase('Summer')
+        )
+          this.openVisit(entity);
       }),
     );
   }
@@ -120,7 +131,11 @@ export class FarmVisitSystem extends createSystem({
     this.tagged.add(name);
     if (!entity.hasComponent(FarmPlot)) entity.addComponent(FarmPlot, { farmer: name });
     // Apply the current phase's interactivity to the freshly-tagged farm.
-    this.setOneVisitable(entity, gameState.currentPhase === 'Summer');
+    this.setOneVisitable(
+      entity,
+      gameState.currentPhase === 'Summer' &&
+        !gameState.hasCompletedPhase('Summer'),
+    );
   }
 
   /** Add/remove RayInteractable on every tagged farm. */

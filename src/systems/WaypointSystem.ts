@@ -14,7 +14,7 @@
  * camera, and never changes gameplay. The target rules per phase:
  *   Arrival — the supply crates, once the orientation cinematic has finished.
  *   Spring  — Thomas → the farm plot → the Confirm panel (by progress).
- *   Summer  — nearest stall → nearest unvisited stall/farm → town center (2+ visits).
+ *   Summer  — nearest stall → each unvisited stall/farm → town center (all visited).
  *   Fall    — the ship → the dock trading spot after the decree → none.
  *   Winter  — none (the results dashboard is full-screen).
  *
@@ -187,6 +187,11 @@ export class WaypointSystem extends createSystem({
   update(delta: number): void {
     this.clock += delta;
 
+    // Cache the camera world position ONCE per frame and reuse everywhere
+    // below (getTarget()->nearest() also reads it). Avoids a second
+    // getWorldPosition() call in the Summer "nearest spot" path.
+    this.world.camera.getWorldPosition(this.camPos);
+
     const target = this.getTarget();
     if (!target) {
       this.hideAll();
@@ -198,7 +203,6 @@ export class WaypointSystem extends createSystem({
     const bob = BOB_AMP * Math.sin((this.clock / BOB_PERIOD) * Math.PI * 2);
     this.markerPos.set(target.pos.x, target.pos.y + hover + bob, target.pos.z);
 
-    this.world.camera.getWorldPosition(this.camPos);
     const dist = this.camPos.distanceTo(target.pos);
     if (dist < HIDE_DIST) {
       this.hideAll();
@@ -236,14 +240,15 @@ export class WaypointSystem extends createSystem({
         return null;
 
       case 'Summer': {
-        const visited = summerProgress.getVisitedCount();
-        if (visited === 0) return this.nearest(STALLS);
-        if (visited < 2) {
-          const seen = summerProgress.getVisited();
-          const open = TRADE_SPOTS.filter((s) => !seen.includes(s.id));
-          return open.length ? this.nearest(open) : { pos: TOWN_CENTER, label: 'Town Center' };
-        }
-        return { pos: TOWN_CENTER, label: 'Town Center' };
+        // Guide the player to a trader they haven't visited yet so they can
+        // weigh every option, until all five have been seen. After that, point
+        // back to the town center — the on-screen "Done Trading" button ends
+        // Summer whenever they decide they're finished.
+        if (summerProgress.getVisitedCount() === 0) return this.nearest(STALLS);
+        // Set membership is O(1); avoids an O(n·m) Array.includes() scan.
+        const seen = new Set(summerProgress.getVisited());
+        const open = TRADE_SPOTS.filter((s) => !seen.has(s.id));
+        return open.length ? this.nearest(open) : { pos: TOWN_CENTER, label: 'Town Center' };
       }
 
       case 'Fall':
@@ -260,7 +265,7 @@ export class WaypointSystem extends createSystem({
 
   /** The nearest spot to the player from a list, labelled for display. */
   private nearest(spots: { id: string; pos: Vector3 }[]): Target {
-    this.world.camera.getWorldPosition(this.camPos);
+    // Uses this.camPos, already refreshed once per frame at the top of update().
     let best = spots[0];
     let bestD = Infinity;
     for (const s of spots) {

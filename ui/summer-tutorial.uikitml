@@ -60,7 +60,8 @@
   <span class="tut-step">3. Point at a trader and pull the trigger to open a trade.</span>
   <span class="tut-step">4. Click your goods, then theirs. Watch the meter turn green for a Fair Trade.</span>
   <span class="tut-step">5. Press Propose Trade to get the items your needs call for.</span>
-  <span class="tut-step">6. Visit at least 2 of the 5 traders (3 market stalls + 2 farms) before Summer ends.</span>
+  <span class="tut-step">6. Visit as many of the 5 traders as you like (3 market stalls + 2 farms) to weigh your options.</span>
+  <span class="tut-step">7. When you are finished, press Done Trading (lower right) to end Summer.</span>
 
   <button id="tut-begin">Begin</button>
 </div>

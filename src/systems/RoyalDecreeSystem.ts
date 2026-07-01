@@ -36,7 +36,7 @@
 
 import {
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -50,6 +50,7 @@ import { gameState } from '../game/GameState.js';
 import { fallSequence } from '../game/FallSequence.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 const PANEL_CONFIG = './ui/royal-decree.json';
 
@@ -87,7 +88,7 @@ export class RoyalDecreeSystem extends createSystem({
     this.panelEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: PANEL_CONFIG, maxWidth: 1.7, maxHeight: 1.7 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '10%',
         left: '28vw',
@@ -159,12 +160,19 @@ export class RoyalDecreeSystem extends createSystem({
       this.finaleShown = true;
       this.setOpacity('decree-captain', 1);
       this.setOpacity('decree-continue', 1);
+      // Re-fit the on-screen panel now that every element is present, so its
+      // interactive bounds cover the freshly-revealed Continue button (the
+      // one-time fit at present() happened before this content existed).
+      relayoutScreenSpacePanels(this.doc);
       // The reveal is done — stop ticking; nothing left to animate.
       this.presenting = false;
     }
   }
 
   private onContinue(): void {
+    // Ignore stray clicks before the button has actually been revealed.
+    if (!this.finaleShown) return;
+    sfx.click();
     this.presenting = false;
     this.setVisible(false);
 
@@ -191,16 +199,16 @@ export class RoyalDecreeSystem extends createSystem({
   }
 
   /**
-   * Set an element's opacity AND keep its display in lock-step: opacity 0 also
-   * sets display:none so a fully-faded element can't intercept clicks or hold
-   * layout; any positive opacity flips it back to flex. This is how the staged
-   * rules stay truly hidden before their turn, then fade in.
+   * Fade a staged element by opacity ONLY — its display stays put so it always
+   * reserves its slot in the parchment's column. That keeps the panel's height
+   * (and therefore its screen-space fit + interactive bounds) constant from the
+   * first frame, so the Continue button lands where it's expected and stays
+   * clickable. An unrevealed element is simply transparent, not removed. The
+   * decree's root is hidden wholesale via setVisible() until present(), so these
+   * pre-revealed-but-transparent elements never show early.
    */
   private setOpacity(id: string, opacity: number): void {
-    this.text(id)?.setProperties({
-      opacity,
-      display: opacity <= 0 ? 'none' : 'flex',
-    });
+    this.text(id)?.setProperties({ opacity });
   }
 
   // ─────────────────────────────── visibility ────────────────────────────────
@@ -210,7 +218,7 @@ export class RoyalDecreeSystem extends createSystem({
     this.container('decree-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   // ─────────────────────────────── doc helpers ───────────────────────────────

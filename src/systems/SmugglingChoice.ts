@@ -31,7 +31,7 @@
 import {
   Vector3,
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -49,6 +49,7 @@ import { fallSequence } from '../game/FallSequence.js';
 import { fallProgress } from '../game/FallProgress.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 import { CAPTAIN_SPOT, CAPTAIN_GANGPLANK_TOP } from './TradeShipArrival.js';
 
 const SMUGGLER_CONFIG = './ui/smuggler.json';
@@ -124,7 +125,7 @@ export class SmugglingChoice extends createSystem({
     this.smugEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: SMUGGLER_CONFIG, maxWidth: 1.7, maxHeight: 1.1 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '24%',
         left: '20vw',
@@ -137,7 +138,7 @@ export class SmugglingChoice extends createSystem({
     this.dutchEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: DUTCH_CONFIG, maxWidth: 1.3, maxHeight: 1.0 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '26%',
         left: '28vw',
@@ -294,6 +295,7 @@ export class SmugglingChoice extends createSystem({
 
   /** Choice B — refuse. Safe, +5 Crown Reputation. */
   private onRefuse(): void {
+    sfx.click();
     colonyScore.addReputation(REFUSE_REP);
     fallProgress.recordSmuggling('refused', 0);
     gameState.logDecision('[Fall] Player refused smuggling - stayed loyal to the Crown');
@@ -303,6 +305,7 @@ export class SmugglingChoice extends createSystem({
 
   /** Choice A — smuggle. Open the simplified Dutch trade panel. */
   private onSmuggle(): void {
+    sfx.click();
     this.dutchTobacco = 0;
     this.setVisible(this.smugEntity, this.smugDoc, 'smug-root', false);
     this.refreshDutch();
@@ -313,6 +316,7 @@ export class SmugglingChoice extends createSystem({
 
   /** Cycle how much tobacco to smuggle (0 → owned → 0). */
   private onDutchCycle(): void {
+    sfx.click();
     const owned = playerInventory.getItemCount('tobacco');
     this.dutchTobacco = (this.dutchTobacco + 1) % (owned + 1);
     this.refreshDutch();
@@ -320,6 +324,7 @@ export class SmugglingChoice extends createSystem({
 
   /** Conclude the illegal deal: sell the tobacco, apply scores, roll discovery. */
   private onDutchDeal(): void {
+    sfx.coin();
     const n = this.dutchTobacco;
     if (n > 0) playerInventory.removeItems('tobacco', n);
 
@@ -373,6 +378,7 @@ export class SmugglingChoice extends createSystem({
 
   /** Continue → Step 5 (and TradeShipArrival releases the camera hold). */
   private onContinue(): void {
+    sfx.click();
     this.setVisible(this.smugEntity, this.smugDoc, 'smug-root', false);
     objectiveTracker.completeSubTask('fall-choice');
     fallSequence.emitSmugglingComplete();
@@ -390,7 +396,7 @@ export class SmugglingChoice extends createSystem({
     this.container(doc, rootId)?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(doc);
   }
 
   private setDisplay(

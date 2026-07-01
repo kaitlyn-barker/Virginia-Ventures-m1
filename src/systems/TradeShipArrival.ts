@@ -51,7 +51,7 @@
 import {
   Vector3,
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -211,7 +211,7 @@ export class TradeShipArrival extends createSystem({
     this.captionEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: CAPTION_CONFIG, maxWidth: 1.6, maxHeight: 0.8 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         bottom: '20%',
         left: '15vw',
@@ -271,6 +271,15 @@ export class TradeShipArrival extends createSystem({
   // ───────────────────────────── phase lifecycle ─────────────────────────────
 
   private startArrival(): void {
+    // Locked-tracker revisit: if the player has already finished Fall and is
+    // just looking back, don't replay the arrival cinematic or re-fire the
+    // trade-ship sequence — leave the static dock scene under player control.
+    if (gameState.hasCompletedPhase('Fall')) {
+      this.cinematicRunning = false;
+      this.holdView = false;
+      this.setCaptionVisible(false);
+      return;
+    }
     this.clock = 0;
     this.cinematicRunning = true;
     this.holdView = true;
@@ -431,7 +440,7 @@ export class TradeShipArrival extends createSystem({
     this.container('cap-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.captionDoc);
   }
 
   private text(id: string): UIKit.Text | undefined {

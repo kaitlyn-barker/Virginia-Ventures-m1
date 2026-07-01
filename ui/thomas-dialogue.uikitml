@@ -10,7 +10,10 @@
     display: flex;
     flex-direction: row;
     align-items: stretch;
-    width: 100%;
+    /* A DEFINITE width (not 100%) so the spoken line WRAPS instead of stretching
+       the whole panel off the side of the screen. Wide enough to still read as a
+       bottom dialogue banner once it's scaled into its ScreenSpace box. */
+    width: 132;
     padding: 2;
     background-color: #241a12;
     background-opacity: 0.96;

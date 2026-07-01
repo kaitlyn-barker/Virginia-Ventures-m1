@@ -42,6 +42,7 @@ import {
   PanelUI,
   Pressed,
   RayInteractable,
+  ScreenSpace,
   Transform,
   Types,
   UIKit,
@@ -51,6 +52,8 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 import { gameState } from '../game/GameState.js';
 import { colonyScore } from '../game/ColonyScore.js';
 import { playerInventory } from '../game/PlayerInventory.js';
@@ -257,7 +260,18 @@ export class MarketSystem extends createSystem({
         maxWidth: 1.5,
         maxHeight: 1.0,
       })
-      .addComponent(RayInteractable);
+      .addComponent(RayInteractable)
+      // ScreenSpace pins the trade panel as a centered overlay on desktop (a
+      // world-space panel is hard to aim a mouse at) and converts to world-space
+      // in XR, where the world-position set in openTradeWith() still applies.
+      // Sat high so its lower edge clears the trader-description toast that the
+      // tutorial layer parks along the bottom (they used to collide top-center).
+      .addComponent(ScreenSpace, {
+        top: '8%',
+        left: '18vw',
+        width: '64vw',
+        height: '58%',
+      });
     this.tradeEntity.object3D!.visible = false;
 
     this.promptEntity = this.world
@@ -280,10 +294,18 @@ export class MarketSystem extends createSystem({
     // ── Market is "open" only in Summer: toggle stall interactivity per phase ─
     this.cleanupFuncs.push(
       gameState.onPhaseChanged((_old, next) =>
-        this.setStallsInteractive(next === 'Summer'),
+        // Only the FIRST Summer trades. On a locked-tracker revisit of a finished
+        // Summer the market is read-only, so re-trading can't change the final
+        // score after the fact.
+        this.setStallsInteractive(
+          next === 'Summer' && !gameState.hasCompletedPhase('Summer'),
+        ),
       ),
     );
-    this.setStallsInteractive(gameState.currentPhase === 'Summer');
+    this.setStallsInteractive(
+      gameState.currentPhase === 'Summer' &&
+        !gameState.hasCompletedPhase('Summer'),
+    );
 
     // ── Open the trade panel when a stall is pressed (Summer only) ───────────
     this.cleanupFuncs.push(
@@ -318,7 +340,11 @@ export class MarketSystem extends createSystem({
     this.tagged.add(name);
     if (!entity.hasComponent(TradeStall))
       entity.addComponent(TradeStall, { trader: name });
-    this.setStallInteractive(entity, gameState.currentPhase === 'Summer');
+    this.setStallInteractive(
+      entity,
+      gameState.currentPhase === 'Summer' &&
+        !gameState.hasCompletedPhase('Summer'),
+    );
   }
 
   /** Add/remove RayInteractable on every tagged stall (market open ⇔ Summer). */
@@ -340,13 +366,21 @@ export class MarketSystem extends createSystem({
     // tick down the "Trade Complete!" banner.
     if (this.active && this.tradeDoc) {
       if (Math.abs(this.needlePos - this.needleTarget) > 0.05) {
-        this.needlePos += (this.needleTarget - this.needlePos) * Math.min(1, delta * 9);
+        // Frame-rate-independent exponential ease: smooth on every frame, and
+        // (unlike a delta-clamped lerp) never snaps to target on a long frame.
+        this.needlePos +=
+          (this.needleTarget - this.needlePos) * (1 - Math.exp(-delta * 9));
         this.container('meter-needle')?.setProperties({ positionLeft: this.needlePos });
       }
       if (this.bannerLeft > 0) {
         this.bannerLeft -= delta;
-        if (this.bannerLeft <= 0)
+        if (this.bannerLeft <= 0) {
           this.container('trade-banner')?.setProperties({ display: 'none' });
+          // Trade complete: retire the panel once the celebration banner has had
+          // its moment (the player re-clicks the trader for another deal). Cancel
+          // dismisses immediately via its own handler.
+          this.closeTrade();
+        }
       }
     }
 
@@ -435,6 +469,9 @@ export class MarketSystem extends createSystem({
     );
     this.faceHead(panel);
     panel.visible = true;
+    // Show the ScreenSpace overlay root on desktop (object3D.visible alone does
+    // not reveal the pinned DOM overlay); relayout fires after refresh() below.
+    this.container('trade-root')?.setProperties({ display: 'flex' });
 
     // Fill the header + reset the proposal view (needle + banner to neutral).
     this.setText('npc-name', id);
@@ -445,6 +482,8 @@ export class MarketSystem extends createSystem({
     this.needlePos = 0.05 * NEEDLE_TRAVEL;
     this.container('meter-needle')?.setProperties({ positionLeft: this.needlePos });
     this.refresh();
+    // Refit the freshly-revealed ScreenSpace overlay to its new content.
+    relayoutScreenSpacePanels(this.tradeDoc);
   }
 
   private closeTrade(): void {
@@ -453,6 +492,7 @@ export class MarketSystem extends createSystem({
     this.give = { corn: 0, tobacco: 0, trade_goods: 0 };
     this.receive = {};
     this.setVisible(this.tradeEntity, false);
+    this.container('trade-root')?.setProperties({ display: 'none' });
     // Run any opener-supplied cleanup last (e.g. return to settlement centre).
     onClose?.();
   }
@@ -474,6 +514,11 @@ export class MarketSystem extends createSystem({
     }
     this.button('btn-propose')?.addEventListener('click', () => this.onPropose());
     this.button('btn-cancel')?.addEventListener('click', () => this.closeTrade());
+
+    // The panel now carries ScreenSpace, so its DOM overlay would show on desktop
+    // the instant the document loads (object3D.visible alone no longer hides it).
+    // Start the root hidden; openTradeWith() reveals it when a stall is selected.
+    this.container('trade-root')?.setProperties({ display: 'none' });
 
     // Hover affordance on the goods rows (gold border). Best-effort: if the
     // pointer-enter/leave events aren't delivered, the rows simply don't hover.
@@ -596,6 +641,7 @@ export class MarketSystem extends createSystem({
 
     if (result === 'empty') {
       this.setText('npc-response', 'Choose what you would like to trade.');
+      sfx.error();
       return;
     }
     if (result === 'under') {
@@ -603,6 +649,7 @@ export class MarketSystem extends createSystem({
         'npc-response',
         'I appreciate the offer, but I need more for that.',
       );
+      sfx.error();
       return;
     }
     if (result === 'fair') {
@@ -610,6 +657,7 @@ export class MarketSystem extends createSystem({
     } else {
       this.setText('npc-response', 'That is very generous of you! Deal!');
     }
+    sfx.coin(); // bright ka-ching when a trade lands
     this.executeTrade(result);
   }
 

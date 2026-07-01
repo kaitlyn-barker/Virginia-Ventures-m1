@@ -29,8 +29,26 @@
     color: #f4ead2;
     text-align: center;
   }
+
+  /* "Skip Tour" button — lets an impatient player jump straight into the
+     colony. Gold to read as the primary affordance on the caption card. */
+  .intro-skip {
+    margin-top: 1.6;
+    padding-top: 0.6;
+    padding-bottom: 0.6;
+    padding-left: 2.2;
+    padding-right: 2.2;
+    background-color: #c79a4b;
+    color: #241a0f;
+    font-size: 1.7;
+    font-weight: bold;
+    border-radius: 1;
+    text-align: center;
+    cursor: pointer;
+  }
 </style>
 <div id="intro-root" class="intro">
   <span id="intro-title" class="intro-title">...</span>
   <span id="intro-body" class="intro-body">...</span>
+  <button id="intro-skip" class="intro-skip">Skip Tour  (or press Space)</button>
 </div>

@@ -39,7 +39,6 @@
 import {
   createComponent,
   createSystem,
-  Interactable,
   PanelDocument,
   PanelUI,
   Pressed,
@@ -56,6 +55,7 @@ import { gameState } from '../game/GameState.js';
 import { springProgress } from '../game/SpringProgress.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 /** Tags Thomas as the Spring farming advisor (found by NPC name at startup). */
 export const SpringAdvisor = createComponent('SpringAdvisor', {});
@@ -98,6 +98,12 @@ export class ThomasAdviceSystem extends createSystem({
   /** Where we are in the conversation. */
   private state: DlgState = 'opening';
 
+  /** Which crops the player has asked about this conversation. Each question
+   *  button hides once heard; once BOTH are heard the options give way to a
+   *  single Continue (the "balance both" lesson made mandatory). Reset on open. */
+  private cornHeard = false;
+  private tobaccoHeard = false;
+
   init() {
     // ── Create the bottom-of-view dialogue box (hidden until Thomas is opened) ─
     this.panelEntity = this.world
@@ -107,8 +113,8 @@ export class ThomasAdviceSystem extends createSystem({
         maxWidth: 1.9,
         maxHeight: 0.62,
       })
-      // Interactable so the box's buttons receive pointer/ray clicks.
-      .addComponent(Interactable)
+      // RayInteractable so the box's buttons receive pointer/ray clicks.
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         bottom: '78px',
         left: '8vw',
@@ -202,6 +208,10 @@ export class ThomasAdviceSystem extends createSystem({
     // Reveal the bottom-of-view box and re-fit its on-screen layout.
     this.setBoxVisible(true);
 
+    // Every fresh conversation starts with both crops on offer again.
+    this.cornHeard = false;
+    this.tobaccoHeard = false;
+
     // Always (re)start the conversation from the opening line.
     this.setState('opening');
   }
@@ -214,16 +224,20 @@ export class ThomasAdviceSystem extends createSystem({
   private setBoxVisible(visible: boolean): void {
     if (this.panelEntity?.object3D) this.panelEntity.object3D.visible = visible;
     this.container('dlg-root')?.setProperties({ display: visible ? 'flex' : 'none' });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   // ──────────────────────────────── panel wiring ─────────────────────────────
 
   private wirePanel(): void {
-    this.button('btn-corn')?.addEventListener('click', () => this.setState('corn'));
-    this.button('btn-tobacco')?.addEventListener('click', () =>
-      this.setState('tobacco'),
-    );
+    this.button('btn-corn')?.addEventListener('click', () => {
+      sfx.click();
+      this.setState('corn');
+    });
+    this.button('btn-tobacco')?.addEventListener('click', () => {
+      sfx.click();
+      this.setState('tobacco');
+    });
     this.button('btn-advance')?.addEventListener('click', () => this.onAdvance());
   }
 
@@ -232,16 +246,31 @@ export class ThomasAdviceSystem extends createSystem({
     this.state = state;
     this.setText('dlg-body', LINES[state]);
 
-    // The two question buttons are available everywhere EXCEPT the closing line.
-    this.container('dlg-options')?.setProperties({
-      display: state !== 'closing' ? 'flex' : 'none',
+    // Remember which crop this step covered so its question button retires.
+    if (state === 'corn') this.cornHeard = true;
+    if (state === 'tobacco') this.tobaccoHeard = true;
+    const bothHeard = this.cornHeard && this.tobaccoHeard;
+
+    // Hide each question button once its crop has been heard, so only the
+    // still-unheard option stays clickable.
+    this.button('btn-corn')?.setProperties({
+      display: this.cornHeard ? 'none' : 'flex',
+    });
+    this.button('btn-tobacco')?.setProperties({
+      display: this.tobaccoHeard ? 'none' : 'flex',
     });
 
-    // The "Continue" affordance is hidden on the opening line (the player must
-    // hear at least one crop first); otherwise it advances, ending on the
-    // closing line's "Get planting!".
+    // The options row is shown while there's still a crop left to hear; once
+    // both are heard (or we've reached the closing line) it gives way entirely.
+    this.container('dlg-options')?.setProperties({
+      display: state !== 'closing' && !bothHeard ? 'flex' : 'none',
+    });
+
+    // The "Continue" affordance only appears once BOTH crops have been heard
+    // (opening + single-crop steps withhold it, so the player must ask about
+    // each); on the closing line it becomes "Get planting!".
     const advance = this.button('btn-advance');
-    if (state === 'opening') {
+    if (state !== 'closing' && !bothHeard) {
       advance?.setProperties({ display: 'none' });
     } else {
       advance?.setProperties({
@@ -253,6 +282,7 @@ export class ThomasAdviceSystem extends createSystem({
 
   /** The advance button: branch → closing, or closing → finish the talk. */
   private onAdvance(): void {
+    sfx.click();
     if (this.state === 'closing') this.finishDialogue();
     else this.setState('closing');
   }

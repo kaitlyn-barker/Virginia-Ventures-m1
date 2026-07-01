@@ -22,6 +22,7 @@
 
 import {
   createSystem,
+  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -30,6 +31,8 @@ import {
   UIKitDocument,
   eq,
 } from '@iwsdk/core';
+
+import { hudFollow } from '../ui/hudFollow.js';
 
 import { gameState } from '../game/GameState.js';
 import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
@@ -139,7 +142,9 @@ export class ScoreHudSystem extends createSystem({
         // Persistent HUD: sit slightly farther than the default popup depth so
         // dialogues / decree / recap popups render in front of it.
         zOffset: 0.26,
-      });
+      })
+      // XR: float the score HUD to the upper-left in front of the headset.
+      .addComponent(Follower, hudFollow(this.player.head, [-0.95, 0.3, -1.95]));
 
     // (2) Capture the document when it loads, paint once, set initial visibility.
     this.cleanupFuncs.push(

@@ -29,6 +29,7 @@
 import {
   AudioUtils,
   createSystem,
+  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -38,10 +39,13 @@ import {
   eq,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
+
 import { gameState, PHASE_ORDER, type GamePhase } from '../game/GameState.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { SEASON_ACCENT, SEASON_LABEL } from './seasons.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { arrivalSequence } from '../game/ArrivalSequence.js';
 
 /** The tracker panel's UI config (compiled from ui/objective-tracker.uikitml). */
 const PANEL_CONFIG = './ui/objective-tracker.json';
@@ -157,7 +161,9 @@ export class ObjectiveTrackerSystem extends createSystem({
         // Persistent HUD: sit slightly farther than the default popup depth
         // (0.2) so dialogues / decree / recap popups render in front of it.
         zOffset: 0.26,
-      });
+      })
+      // XR: float the objective tracker to the upper-right in front of the headset.
+      .addComponent(Follower, hudFollow(this.player.head, [0.82, 0.12, -1.92]));
 
     // (2) When the document is ready (now or later), capture it and paint the
     //     current phase. `true` replays for an already-loaded panel.
@@ -169,9 +175,17 @@ export class ObjectiveTrackerSystem extends createSystem({
             | UIKitDocument
             | undefined;
           this.renderPhase(this.currentPhase, false);
+          // Hidden on the welcome/title screen; revealed on enter-colony.
+          this.setHidden(gameState.currentPhase === 'Arrival');
         },
         true,
       ),
+    );
+
+    // Reveal the tracker once the player enters the colony (matches the score +
+    // inventory HUDs) so it never overlaps the centered welcome card.
+    this.cleanupFuncs.push(
+      arrivalSequence.onEnterColony(() => this.setHidden(false)),
     );
 
     // (3) Swap the objective when the phase changes. Leaving Arrival ticks the
@@ -253,7 +267,7 @@ export class ObjectiveTrackerSystem extends createSystem({
     }
 
     // Content width/height shifts with the new text — re-fit the screen layout.
-    relayoutScreenSpacePanels();
+    relayoutScreenSpacePanels(this.doc);
   }
 
   /** The label text, with the live "x of y met" suffix for the needs row. */
@@ -271,7 +285,9 @@ export class ObjectiveTrackerSystem extends createSystem({
       borderColor: MET_GREEN,
       borderWidth: 0.22,
     });
-    this.text(`quest-check-${i}`)?.setProperties({ text: '✓' });
+    // Done is shown by the green-filled circle itself; no inner glyph (the
+    // bundled font has no checkmark, and a literal "x" reads as a failure mark).
+    this.text(`quest-check-${i}`)?.setProperties({ text: '' });
     this.text(`quest-label-${i}`)?.setProperties({ color: LABEL_DONE });
     this.container(`quest-row-${i}`)?.setProperties({ borderColor: ROW_IDLE_BORDER });
   }
@@ -313,6 +329,11 @@ export class ObjectiveTrackerSystem extends createSystem({
 
   private setDisplay(id: string, display: 'none' | 'flex'): void {
     this.container(id)?.setProperties({ display });
+  }
+
+  /** Show/hide the whole tracker HUD by toggling its root container. */
+  private setHidden(hidden: boolean): void {
+    this.setDisplay('quest-root', hidden ? 'none' : 'flex');
   }
 
   private text(id: string): UIKit.Text | undefined {

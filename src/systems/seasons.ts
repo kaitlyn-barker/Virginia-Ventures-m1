@@ -27,9 +27,9 @@ export const SEASON_ACCENT: Record<GamePhase, string> = {
 
 /**
  * The text shown on the banner per phase. The brief wanted a small ship/anchor
- * glyph for Arrival, but the UI font (Inter) has no ⚓ glyph and renders it as a
- * "tofu" box, so we keep plain names. Arrival's "ship" cue is carried instead by
- * its bright white accent bar (the SEASON_ACCENT color above).
+ * glyph for Arrival, but the UI font (Inter) has no anchor glyph and renders it
+ * as a "tofu" box, so we keep plain names. Arrival's "ship" cue is carried
+ * instead by its bright white accent bar (the SEASON_ACCENT color above).
  */
 export const SEASON_LABEL: Record<GamePhase, string> = {
   Arrival: 'Arrival',

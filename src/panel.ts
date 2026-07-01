@@ -9,6 +9,7 @@ import {
 } from "@iwsdk/core";
 
 import { arrivalSequence } from "./game/ArrivalSequence.js";
+import { sfx } from "./audio/Sfx.js";
 
 export class PanelSystem extends createSystem({
   welcomePanel: {
@@ -29,6 +30,9 @@ export class PanelSystem extends createSystem({
       // cinematic (ArrivalCinematic listens on arrivalSequence.onEnterColony).
       const enterColony = document.getElementById("enter-colony") as UIKit.Text;
       enterColony?.addEventListener("click", () => {
+        // First user gesture of the session — also unlocks the Web Audio context
+        // so later cues (planting, trades, chimes) can play.
+        sfx.click();
         if (entity.object3D) entity.object3D.visible = false;
         (document.getElementById("welcome-root") as UIKit.Container | null)
           ?.setProperties({ display: "none" });

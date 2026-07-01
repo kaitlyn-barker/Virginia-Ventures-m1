@@ -1,0 +1,44 @@
+<style>
+  /* "Done Trading" button — a persistent bottom-right HUD shown all through
+     Summer. The player trades with as many of the five traders as they like to
+     weigh their options, then presses this to end the season on their own terms
+     (SummerRecap shows the recap, then Continue advances to Fall). Parchment
+     palette, ASCII text only (the UI font lacks dashes/symbols). */
+  .finish-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.4;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.15;
+    border-radius: 2.5;
+  }
+
+  .finish-hint {
+    font-size: 1.4;
+    color: #cbb78f;
+    text-align: center;
+    margin-bottom: 0.7;
+  }
+
+  #btn-finish-summer {
+    padding-top: 1.1;
+    padding-bottom: 1.1;
+    padding-left: 1.4;
+    padding-right: 1.4;
+    background-color: #c79a4b;
+    color: #2a2018;
+    border-radius: 1.4;
+    border-width: 0.1;
+    border-color: #e0c074;
+    font-size: 1.9;
+    font-weight: medium;
+    text-align: center;
+    cursor: pointer;
+  }
+</style>
+<div id="finish-root" class="finish-panel">
+  <span class="finish-hint">When you're ready:</span>
+  <button id="btn-finish-summer">Done Trading</button>
+</div>

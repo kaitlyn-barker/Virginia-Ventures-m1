@@ -33,7 +33,7 @@
 
 import {
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -50,6 +50,7 @@ import { fallSequence } from '../game/FallSequence.js';
 import { fallProgress } from '../game/FallProgress.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 const PANEL_CONFIG = './ui/ship-trade.json';
 
@@ -118,7 +119,7 @@ export class ShipTrading extends createSystem({
     this.panelEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: PANEL_CONFIG, maxWidth: 2.1, maxHeight: 1.6 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '8%',
         left: '11vw',
@@ -206,6 +207,7 @@ export class ShipTrading extends createSystem({
   /** Click an export → cycle how many to sell (0 → owned → 0). */
   private onExportClick(g: GoodType): void {
     if (!this.open) return;
+    sfx.click();
     const owned = playerInventory.getItemCount(g);
     this.sell[g] = (this.sell[g] + 1) % (owned + 1);
     this.setResponse('');
@@ -216,6 +218,7 @@ export class ShipTrading extends createSystem({
    *  back to zero (a way to clear it). You can only buy what the gold covers. */
   private onImportClick(id: string): void {
     if (!this.open) return;
+    sfx.click();
     const price = IMPORTS[id].price;
     const gold = this.computeGold();
     if (gold >= price) {
@@ -240,9 +243,13 @@ export class ShipTrading extends createSystem({
     const anySell = tobaccoSold + cornSold + goodsSold > 0;
     const anyBuy = Object.values(this.buy).some((n) => n > 0);
     if (!anySell && !anyBuy) {
+      sfx.error();
       this.setResponse('Choose goods to sell, or imports to buy.');
       return;
     }
+
+    // The exchange is happening — goods change hands. Sound the "ka-ching".
+    sfx.coin();
 
     // Hand over the sold exports (clamped earlier, but guard removeItems).
     for (const g of EXPORT_GOODS) {
@@ -299,6 +306,7 @@ export class ShipTrading extends createSystem({
   /** Clear the pending basket without trading. */
   private onCancel(): void {
     if (!this.open) return;
+    sfx.click();
     this.resetPending();
     this.setResponse('Transaction cleared.');
     this.refresh();
@@ -306,6 +314,7 @@ export class ShipTrading extends createSystem({
 
   /** End the Company visit → Step 4 (the smuggler). */
   private onFinish(): void {
+    sfx.click();
     this.open = false;
     this.setVisible(false);
     gameState.logDecision(
@@ -390,7 +399,7 @@ export class ShipTrading extends createSystem({
     this.container('ship-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   private setResponse(value: string): void {

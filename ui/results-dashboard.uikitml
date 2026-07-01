@@ -5,9 +5,10 @@
      every dynamic value ships with a placeholder here. Dark/gold/cream colonial
      palette, matching welcome.uikitml / fall-summary.uikitml.
 
-     NOTE on the icon glyphs (🌽 🪙 👑): the bundled UIKit font is limited (it
-     already warns on the em-dash), so emoji may not render. They're included
-     per the brief; the pillar label carries the meaning if a glyph is missing. */
+     NOTE on the pillar markers: the bundled UIKit font has no emoji glyphs, so
+     the old corn/coin/crown emoji rendered as empty boxes and spammed the
+     console. We use short text tags (Food / Gold / Crown) instead — the pillar
+     label beside each one already spells out the full meaning. */
   .dash {
     display: flex;
     flex-direction: column;
@@ -134,7 +135,7 @@
 
   <!-- Food Supply -->
   <div class="score-row">
-    <span class="icon">🌽</span>
+    <span class="icon">Food</span>
     <span class="pillar">Food Supply</span>
     <div class="bar-track"><div id="bar-food" class="bar-fill"></div></div>
     <span id="num-food" class="num">50/100</span>
@@ -143,7 +144,7 @@
 
   <!-- Trade Wealth -->
   <div class="score-row">
-    <span class="icon">🪙</span>
+    <span class="icon">Gold</span>
     <span class="pillar">Trade Wealth</span>
     <div class="bar-track"><div id="bar-wealth" class="bar-fill"></div></div>
     <span id="num-wealth" class="num">50/100</span>
@@ -152,7 +153,7 @@
 
   <!-- Crown Reputation -->
   <div class="score-row">
-    <span class="icon">👑</span>
+    <span class="icon">Crown</span>
     <span class="pillar">Crown Reputation</span>
     <div class="bar-track"><div id="bar-rep" class="bar-fill"></div></div>
     <span id="num-rep" class="num">50/100</span>

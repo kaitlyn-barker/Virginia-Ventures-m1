@@ -210,7 +210,12 @@ export class NeedsSystem extends createSystem({
 
   /** Summer begins: roll new needs, reveal the panel, log what was demanded. */
   private startSummer(): void {
-    this.generateNeeds();
+    // Locked-tracker revisit: if Summer is already finished, keep the needs
+    // exactly as the player left them — rolling a fresh set would wipe their
+    // progress and let them re-fulfil for extra score.
+    if (!gameState.hasCompletedPhase('Summer')) {
+      this.generateNeeds();
+    }
     this.renderChecklist();
     this.setPanelHidden(false);
   }
@@ -359,8 +364,10 @@ export class NeedsSystem extends createSystem({
   private markRowMet(index: number): void {
     if (!this.doc) return;
 
+    // "Met" is shown by the green color + strike line below; no glyph marker
+    // (the bundled font has no checkmark, and "x" reads as a failure mark).
     this.text(`need-${index}-marker`)?.setProperties({
-      text: '✓',
+      text: '',
       color: MET_GREEN,
     });
     this.text(`need-${index}-text`)?.setProperties({ color: TEXT_MET });

@@ -26,6 +26,19 @@
     margin-top: 0.3;
   }
 
+  /* Plain-language controls so a desktop player knows how to move + turn. */
+  .controls-hint {
+    font-size: 1.7;
+    font-weight: medium;
+    color: #e0c074;
+    text-align: left;
+    margin-top: 1.2;
+    background-color: #3a2e22;
+    border-radius: 1;
+    padding: 1;
+    width: 100%;
+  }
+
   /* Primary call to action: begins the arrival orientation cinematic. */
   #enter-colony {
     width: 100%;
@@ -60,6 +73,7 @@
 <div id="welcome-root" class="panel-container">
   <span class="heading"> Virginia Ventures, 1620 </span>
   <span class="sub-heading"> You've crossed the Atlantic to a new colony. Plant to feed your people, trade for wealth, and keep the Crown's favor as the settlement weathers four seasons. Every choice has a cost - prosperity is a balance.</span>
+  <span class="controls-hint">Move: W A S D keys  -  Turn: Left / Right arrow keys  -  Click anyone with a gold ring to talk or trade.</span>
   <button id="enter-colony">Enter the Colony</button>
   <button id="xr-button">Enter VR</button>
 </div>

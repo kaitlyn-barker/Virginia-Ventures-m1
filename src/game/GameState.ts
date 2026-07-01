@@ -89,6 +89,24 @@ export interface GameState {
   cornCells: number;
   tobaccoCells: number;
 
+  /**
+   * Index into PHASE_ORDER of the furthest phase the player has reached. Phases
+   * at or before this are UNLOCKED (selectable from the season banner); phases
+   * beyond it stay LOCKED until the seasons are finished in order. Starts at 0
+   * (only 'Arrival' unlocked). This is what powers the locked progress tracker.
+   */
+  furthestPhaseIndex: number;
+
+  /** True if `phase` has been reached and may be selected from the banner. */
+  isPhaseUnlocked(phase: GamePhase): boolean;
+
+  /**
+   * True once the player has advanced PAST `phase` — its graded decisions are
+   * final. Scripted/one-time content (cutscenes, need generation, the planting
+   * confirm) guards on this so revisiting a finished season is non-destructive.
+   */
+  hasCompletedPhase(phase: GamePhase): boolean;
+
   /** Subscribe to phase changes. Returns an unsubscribe function. */
   onPhaseChanged(cb: PhaseChangedListener): () => void;
 
@@ -179,6 +197,10 @@ function applyPhaseChange(
 ): void {
   const commit = () => {
     state.currentPhase = newPhase;
+    // Unlock progress: record the furthest phase ever reached so the banner can
+    // gate locked (future) phases while still allowing revisits of past ones.
+    const newIdx = PHASE_ORDER.indexOf(newPhase);
+    if (newIdx > state.furthestPhaseIndex) state.furthestPhaseIndex = newIdx;
     emitPhaseChanged(oldPhase, newPhase);
   };
   if (transitionRunner) transitionRunner(oldPhase, newPhase, commit);
@@ -197,6 +219,7 @@ export const gameState: GameState = {
   decisionLog: [],
   cornCells: 0,
   tobaccoCells: 0,
+  furthestPhaseIndex: 0,
 
   onPhaseChanged(cb: PhaseChangedListener): () => void {
     // Subscribe (the web version of `PhaseChanged += cb`).
@@ -229,7 +252,21 @@ export const gameState: GameState = {
     if (phase === oldPhase) {
       return;
     }
+    // Locked-progress rule: a player may revisit a phase they've already
+    // reached, but cannot jump ahead to one they haven't unlocked by finishing
+    // the prior seasons in order. Forward motion happens via advancePhase().
+    if (PHASE_ORDER.indexOf(phase) > this.furthestPhaseIndex) {
+      return;
+    }
     applyPhaseChange(this, oldPhase, phase);
+  },
+
+  isPhaseUnlocked(phase: GamePhase): boolean {
+    return PHASE_ORDER.indexOf(phase) <= this.furthestPhaseIndex;
+  },
+
+  hasCompletedPhase(phase: GamePhase): boolean {
+    return PHASE_ORDER.indexOf(phase) < this.furthestPhaseIndex;
   },
 
   setTransitionRunner(runner: PhaseTransitionRunner | null): void {
@@ -268,6 +305,7 @@ export const gameState: GameState = {
     this.decisionLog.length = 0;
     this.cornCells = 0;
     this.tobaccoCells = 0;
+    this.furthestPhaseIndex = 0;
     // Fire so listeners (UI, etc.) re-render for the fresh start. We emit even
     // if we were already on 'Arrival' because a reset is a meaningful event.
     emitPhaseChanged(oldPhase, 'Arrival');

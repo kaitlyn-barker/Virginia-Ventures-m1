@@ -196,7 +196,7 @@ export class DebugMenuSystem extends createSystem({
     if (this.menuEntity?.object3D) this.menuEntity.object3D.visible = this.open;
     (this.menuDoc?.getElementById('debug-root') as UIKit.Container | null)
       ?.setProperties({ display: this.open ? 'flex' : 'none' });
-    if (this.open) relayoutScreenSpacePanels();
+    if (this.open) relayoutScreenSpacePanels(this.menuDoc);
   }
 
   /** Repaint the phase label + the three live score boxes + prosperity. */

@@ -4,8 +4,10 @@
  * Both the market stalls and the neighbouring farms funnel through
  * `MarketSystem.openTradeWith`, so this singleton is the one place that records
  * WHICH locations were visited and WHAT changed hands. The SummerRecap reads it
- * to decide when the recap should fire (≥2 of the 5 locations visited) and to
- * fill the trade summary. Same module-singleton pattern as gameState/colonyScore.
+ * to fill the trade summary, and the WaypointSystem reads the visited set to
+ * steer the player toward traders they haven't seen yet. (Ending Summer is now
+ * the player's call via the "Done Trading" button, not a visit threshold.)
+ * Same module-singleton pattern as gameState/colonyScore.
  */
 
 /** Distinct trade-location ids visited this Summer (Martha/James/Anne/Thomas/Elizabeth). */

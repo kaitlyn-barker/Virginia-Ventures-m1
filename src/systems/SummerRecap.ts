@@ -1,16 +1,19 @@
 /**
  * SummerRecap.ts — closes out the Summer phase.
  *
- * Fires once the player has visited at least 2 of the 5 trade locations (the 3
- * market stalls + 2 farms), or after a soft 7-minute timer — whichever comes
- * first. It shows a recap modal (needs met/unmet, trades made, the season's
- * score change), settles the unmet-need penalties, records the end-of-Summer
- * score snapshot, and previews Fall. "Continue" advances the phase.
+ * The player ends Summer themselves: a persistent "Done Trading" button (a
+ * bottom-right HUD, ui/summer-finish.uikitml) is shown the whole season so they
+ * can barter with as many of the five traders as they like and weigh their
+ * options before committing. Pressing it (or, as a soft fallback so the game
+ * can't soft-lock, a long idle timer) shows the recap modal (needs met/unmet,
+ * trades made, the season's score change), settles the unmet-need penalties,
+ * records the end-of-Summer score snapshot, and previews Fall. "Continue"
+ * advances the phase.
  */
 
 import {
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -24,15 +27,21 @@ import { gameState } from '../game/GameState.js';
 import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
 import { summerProgress } from '../game/SummerProgress.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 import { NeedsSystem } from './NeedsSystem.js';
 
 const PANEL_CONFIG = './ui/summer-recap.json';
 
-/** Visit this many of the 5 trade locations to end Summer early. */
-const VISIT_THRESHOLD = 2;
+/** The persistent "Done Trading" button HUD shown bottom-right during Summer. */
+const FINISH_CONFIG = './ui/summer-finish.json';
 
-/** Soft fallback: end Summer after this many seconds even with fewer visits. */
-const SOFT_TIMER_SECONDS = 7 * 60;
+/**
+ * Soft fallback ONLY: end Summer automatically after this many seconds. The
+ * player normally ends the season with the "Done Trading" button, so this just
+ * prevents a soft-lock if it's never pressed. Generous so it never cuts short a
+ * player still weighing their trades.
+ */
+const SOFT_TIMER_SECONDS = 12 * 60;
 
 /** The Fall transition narrative (ASCII only — the UI font lacks em-dash). */
 const NARRATIVE =
@@ -50,6 +59,10 @@ export class SummerRecap extends createSystem({
     required: [PanelUI, PanelDocument],
     where: [eq(PanelUI, 'config', PANEL_CONFIG)],
   },
+  finishPanel: {
+    required: [PanelUI, PanelDocument],
+    where: [eq(PanelUI, 'config', FINISH_CONFIG)],
+  },
 }) {
   private recapShown = false;
   private timer = 0;
@@ -59,12 +72,16 @@ export class SummerRecap extends createSystem({
   private panelEntity?: Entity;
   private needsSystem?: NeedsSystem;
 
+  /** The "Done Trading" button HUD (the player's way to end Summer). */
+  private finishDoc?: UIKitDocument;
+  private finishEntity?: Entity;
+
   init() {
     // Centered recap modal, hidden until Summer ends.
     this.panelEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: PANEL_CONFIG, maxWidth: 1.7, maxHeight: 1.5 })
-      .addComponent(Interactable)
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         top: '16%',
         left: '22vw',
@@ -82,6 +99,7 @@ export class SummerRecap extends createSystem({
             entity.index
           ] as UIKitDocument | undefined;
           this.button('recap-continue')?.addEventListener('click', () => {
+            sfx.fanfare(); // Summer complete — celebrate the season finished.
             this.setVisible(false);
             gameState.advancePhase(); // Summer → Fall
           });
@@ -91,13 +109,72 @@ export class SummerRecap extends createSystem({
       ),
     );
 
-    // Each time Summer (re)starts, reset the recap state and remember the score.
+    // The persistent "Done Trading" button: a small bottom-right HUD (mirroring
+    // the inventory HUD on the opposite corner) the player presses to end Summer
+    // whenever they're ready. Hidden until Summer begins and once the recap shows.
+    this.finishEntity = this.world
+      .createTransformEntity()
+      .addComponent(PanelUI, { config: FINISH_CONFIG, maxWidth: 1.15, maxHeight: 0.42 })
+      .addComponent(RayInteractable)
+      .addComponent(ScreenSpace, {
+        // Mirror the inventory HUD on the opposite (right) corner, bottom-aligned
+        // to flank the nav bar. A taller-than-the-content box keeps the fit
+        // width-governed so the label never overflows and clips at the screen
+        // edge on desktop.
+        bottom: '92px',
+        right: '20px',
+        width: '320px',
+        height: '110px',
+        // Persistent HUD: sit slightly farther than the default popup depth so
+        // the centered trade panel / recap modal render in front of it.
+        zOffset: 0.26,
+      });
+    this.finishEntity.object3D!.visible = false;
+
+    // Wire the Done Trading button once its document loads; keep it hidden until
+    // Summer is actually live.
     this.cleanupFuncs.push(
-      gameState.onPhaseChanged((_old, next) => {
+      this.queries.finishPanel.subscribe(
+        'qualify',
+        (entity) => {
+          this.finishDoc = PanelDocument.data.document[
+            entity.index
+          ] as UIKitDocument | undefined;
+          this.finishEl('btn-finish-summer')?.addEventListener('click', () =>
+            this.onFinishPressed(),
+          );
+          this.setFinishVisible(this.summerTradingLive());
+        },
+        true,
+      ),
+    );
+
+    // Each time Summer (re)starts, reset the recap state and remember the score.
+    // Leaving Summer hides the Done Trading button.
+    this.cleanupFuncs.push(
+      gameState.onPhaseChanged((oldPhase, next) => {
         if (next === 'Summer') this.onSummerStart();
+        else if (oldPhase === 'Summer') this.setFinishVisible(false);
       }),
     );
     if (gameState.currentPhase === 'Summer') this.onSummerStart();
+  }
+
+  /** True while the LIVE Summer is in progress (so the finish button shows).
+   *  A finished-Summer revisit stays read-only — no re-ending the season. */
+  private summerTradingLive(): boolean {
+    return (
+      gameState.currentPhase === 'Summer' &&
+      !this.recapShown &&
+      !gameState.hasCompletedPhase('Summer')
+    );
+  }
+
+  /** The player pressed "Done Trading" — end the season on their terms. */
+  private onFinishPressed(): void {
+    if (!this.summerTradingLive()) return;
+    sfx.click();
+    this.showRecap();
   }
 
   private onSummerStart(): void {
@@ -106,21 +183,22 @@ export class SummerRecap extends createSystem({
     summerProgress.reset();
     this.startSnapshot = colonyScore.getScoreSnapshot();
     this.setVisible(false);
+    // Reveal the "Done Trading" button for the live season.
+    this.setFinishVisible(this.summerTradingLive());
   }
 
   update(delta: number) {
     if (gameState.currentPhase !== 'Summer' || this.recapShown) return;
+    // The player ends Summer with the "Done Trading" button; this soft timer is
+    // only a fallback so the game can't soft-lock if it's never pressed.
     this.timer += delta;
-    if (
-      summerProgress.getVisitedCount() >= VISIT_THRESHOLD ||
-      this.timer >= SOFT_TIMER_SECONDS
-    ) {
-      this.showRecap();
-    }
+    if (this.timer >= SOFT_TIMER_SECONDS) this.showRecap();
   }
 
   private showRecap(): void {
     this.recapShown = true;
+    // The season is ending — retire the Done Trading button.
+    this.setFinishVisible(false);
 
     // Settle Summer: apply the unmet-need penalties (idempotent — the Summer→Fall
     // transition won't double-charge), then record the end-of-Summer snapshot.
@@ -203,7 +281,22 @@ export class SummerRecap extends createSystem({
     this.container('recap-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.doc);
+  }
+
+  /** Show/hide the persistent "Done Trading" button HUD. */
+  private setFinishVisible(visible: boolean): void {
+    if (this.finishEntity?.object3D) this.finishEntity.object3D.visible = visible;
+    const root = (this.finishDoc?.getElementById('finish-root') as
+      | UIKit.Container
+      | null) ?? undefined;
+    root?.setProperties({ display: visible ? 'flex' : 'none' });
+    if (visible) relayoutScreenSpacePanels(this.finishDoc);
+  }
+
+  /** A clickable element in the finish-button document. */
+  private finishEl(id: string): UIKit.Text | undefined {
+    return (this.finishDoc?.getElementById(id) as UIKit.Text | null) ?? undefined;
   }
 
   private getNeedsSystem(): NeedsSystem | undefined {

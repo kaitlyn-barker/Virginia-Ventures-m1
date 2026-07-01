@@ -25,10 +25,11 @@
 
 import {
   AudioUtils,
-  Interactable,
   PanelDocument,
   PanelUI,
   Quaternion,
+  RayInteractable,
+  ScreenSpace,
   UIKit,
   UIKitDocument,
   Vector3,
@@ -36,6 +37,9 @@ import {
   eq,
   type Entity,
 } from '@iwsdk/core';
+
+import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
@@ -128,7 +132,16 @@ export class ResultsDashboard extends createSystem({
     this.panelEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: PANEL_CONFIG, maxWidth: 1.6, maxHeight: 1.5 })
-      .addComponent(Interactable);
+      // RayInteractable (not the deprecated Interactable) so VR controller rays
+      // can click the dashboard buttons; ScreenSpace pins it as a centered
+      // overlay on desktop and converts to world-space in the headset.
+      .addComponent(RayInteractable)
+      .addComponent(ScreenSpace, {
+        top: '8%',
+        left: '17vw',
+        width: '66vw',
+        height: '82%',
+      });
     this.panelEntity.object3D!.visible = false;
 
     // Grab the UIKit document + wire the Reflect button once the panel loads.
@@ -165,6 +178,7 @@ export class ResultsDashboard extends createSystem({
     this.anchorInFrontOfPlayer();
     this.render();
     this.setVisible(true);
+    sfx.success(); // the year-end results reveal — a soft rising flourish.
     this.playAppearSound();
     objectiveTracker.completeSubTask('winter-results');
     console.log('[Winter] Results Dashboard opened.');
@@ -333,6 +347,7 @@ export class ResultsDashboard extends createSystem({
    * real reflection screen here later.
    */
   private onReflect(): void {
+    sfx.click();
     // Hand off to Part C: hide this dashboard and start the reflection sequence.
     // (Step 5: this replaced the earlier "START REFLECTION" placeholder log with
     // the real call.) We do NOT write to the decision log here.
@@ -345,6 +360,7 @@ export class ResultsDashboard extends createSystem({
   private setVisible(visible: boolean): void {
     if (this.panelEntity?.object3D) this.panelEntity.object3D.visible = visible;
     this.container('dash-root')?.setProperties({ display: visible ? 'flex' : 'none' });
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   private text(id: string): UIKit.Text | undefined {

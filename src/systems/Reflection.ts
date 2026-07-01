@@ -24,10 +24,11 @@
 
 import {
   AudioUtils,
-  Interactable,
   PanelDocument,
   PanelUI,
   Quaternion,
+  RayInteractable,
+  ScreenSpace,
   UIKit,
   UIKitDocument,
   Vector3,
@@ -35,6 +36,9 @@ import {
   eq,
   type Entity,
 } from '@iwsdk/core';
+
+import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 import { gameState } from '../game/GameState.js';
 import { reflectionStore } from '../game/ReflectionStore.js';
@@ -104,7 +108,15 @@ export class Reflection extends createSystem({
     this.panelEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: PANEL_CONFIG, maxWidth: 1.5, maxHeight: 1.3 })
-      .addComponent(Interactable);
+      // RayInteractable so the choices + Next/Finish are ray-clickable in VR;
+      // ScreenSpace pins it as a centered overlay on desktop.
+      .addComponent(RayInteractable)
+      .addComponent(ScreenSpace, {
+        top: '12%',
+        left: '20vw',
+        width: '60vw',
+        height: '72%',
+      });
     this.panelEntity.object3D!.visible = false;
 
     // Grab the document + wire the choices and Next once the panel loads.
@@ -239,6 +251,7 @@ export class Reflection extends createSystem({
   private onChoose(index: number): void {
     const q = this.questions[this.stepIndex];
     if (!q || index >= q.choices.length) return;
+    sfx.click();
     this.selectedIndex = index;
     this.paintChoices(q);
   }
@@ -248,9 +261,17 @@ export class Reflection extends createSystem({
    * finish). Does nothing until the student has actually picked a choice.
    */
   private onNext(): void {
-    if (this.selectedIndex < 0) return; // must choose before advancing
+    if (this.selectedIndex < 0) {
+      // No choice picked yet — give an audible "you must answer first" cue and
+      // do NOT advance (the button used to no-op silently here).
+      sfx.error();
+      return;
+    }
     const q = this.questions[this.stepIndex];
     if (!q) return;
+
+    // A choice is selected — acknowledge the advance.
+    sfx.click();
 
     // STEP 3 — record the answer (questionId → chosen text) into the NEW store.
     // No scoring: reflection has no right/wrong answers; we just save the pick.
@@ -281,6 +302,7 @@ export class Reflection extends createSystem({
    * react, then hides the panel.
    */
   private onFinish(): void {
+    sfx.fanfare(); // the whole game is complete — a big celebration.
     this.playCompleteSound();
     gameState.completeSimulation(); // fire the end-of-simulation event
     this.setVisible(false);
@@ -370,6 +392,7 @@ export class Reflection extends createSystem({
     this.container('reflect-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   /** A clickable/styleable text span (choices + Next are all spans). */

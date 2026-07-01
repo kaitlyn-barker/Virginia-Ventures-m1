@@ -153,12 +153,12 @@ export class NpcPromptSystem extends createSystem({
 
   /** Resolve a verb 'kind' to the player-facing prompt text for this phase. */
   private verbText(kind: 'talk' | 'trade' | 'both'): string {
-    if (kind === 'trade') return 'Select to trade';
-    if (kind === 'talk') return 'Select to talk';
+    if (kind === 'trade') return 'Click to trade';
+    if (kind === 'talk') return 'Click to talk';
     // 'both' — the neighbouring farmers: advice in Spring, barter in Summer.
     return gameState.currentPhase === 'Summer'
-      ? 'Select to trade'
-      : 'Select to talk';
+      ? 'Click to trade'
+      : 'Click to talk';
   }
 
   private setText(value: string): void {
@@ -175,6 +175,6 @@ export class NpcPromptSystem extends createSystem({
       this.promptEntity.object3D.visible = visible;
     (this.promptDoc?.getElementById('prompt-root') as UIKit.Container | null)
       ?.setProperties({ display: visible ? 'flex' : 'none' });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.promptDoc);
   }
 }

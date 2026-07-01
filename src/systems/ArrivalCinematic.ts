@@ -47,7 +47,7 @@
 import {
   Vector3,
   createSystem,
-  Interactable,
+  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -58,7 +58,9 @@ import {
 } from '@iwsdk/core';
 
 import { arrivalSequence } from '../game/ArrivalSequence.js';
+import { gameState } from '../game/GameState.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
+import { sfx } from '../audio/Sfx.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
 
 const CAPTION_CONFIG = './ui/arrival-intro.json';
@@ -210,13 +212,15 @@ export class ArrivalCinematic extends createSystem({
     // season banner. Hidden until the tour starts.
     this.captionEntity = this.world
       .createTransformEntity()
-      .addComponent(PanelUI, { config: CAPTION_CONFIG, maxWidth: 1.6, maxHeight: 0.8 })
-      .addComponent(Interactable)
+      .addComponent(PanelUI, { config: CAPTION_CONFIG, maxWidth: 1.6, maxHeight: 1.1 })
+      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
-        bottom: '22%',
+        // Tall enough that the title + body + the "Skip Tour" button all get
+        // real estate (the panel is contain-scaled, so more box = bigger button).
+        bottom: '16%',
         left: '15vw',
         width: '70vw',
-        height: '22%',
+        height: '34%',
       });
     this.captionEntity.object3D!.visible = false;
 
@@ -228,6 +232,9 @@ export class ArrivalCinematic extends createSystem({
           this.captionDoc = PanelDocument.data.document[
             entity.index
           ] as UIKitDocument | undefined;
+          // Wire the "Skip Tour" button so an impatient player can jump in.
+          (this.captionDoc?.getElementById('intro-skip') as UIKit.Text | null)
+            ?.addEventListener('click', () => this.skip());
           this.setCaptionVisible(false);
         },
         true,
@@ -238,9 +245,32 @@ export class ArrivalCinematic extends createSystem({
     this.cleanupFuncs.push(
       arrivalSequence.onEnterColony(() => this.startTour()),
     );
+
+    // Robust keyboard skip (Space / Esc): a bulletproof fallback that doesn't
+    // depend on raycasting the moving caption card, so an impatient desktop
+    // player can always get into the colony.
+    const onSkipKey = (e: KeyboardEvent): void => {
+      if (this.running && (e.code === 'Space' || e.code === 'Escape')) {
+        e.preventDefault();
+        this.skip();
+      }
+    };
+    window.addEventListener('keydown', onSkipKey);
+    this.cleanupFuncs.push(() =>
+      window.removeEventListener('keydown', onSkipKey),
+    );
   }
 
   // ───────────────────────────── lifecycle ─────────────────────────────
+
+  /** Skip the orientation tour (the "Skip Tour" caption button) — jump straight
+   *  to the end so an impatient player gets into the colony immediately. */
+  private skip(): void {
+    if (!this.running) return;
+    sfx.click();
+    // Same finish path the tour reaches naturally; `browser` mirrors update().
+    this.finish(!this.renderer.xr.isPresenting);
+  }
 
   private startTour(): void {
     if (this.running) return; // ignore re-presses while the tour plays
@@ -316,6 +346,11 @@ export class ArrivalCinematic extends createSystem({
       console.log('[Arrival] Orientation tour complete - control returned to the player.');
       objectiveTracker.completeSubTask('arrival-watch');
       arrivalSequence.emitCinematicComplete();
+      // The orientation tour is the end of the Arrival intro, so carry the
+      // player into Spring — which unlocks the Spring tab in the locked progress
+      // tracker. (The Spring banner tab used to make this jump; with locked
+      // progression the cinematic itself leads into the first season.)
+      if (gameState.currentPhase === 'Arrival') gameState.advancePhase();
     }
   }
 
@@ -350,6 +385,10 @@ export class ArrivalCinematic extends createSystem({
     this.container('intro-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
+    // NB: pass NO document here. The caption is shown once per shot and carries
+    // the interactive "Skip Tour" button; the per-panel detach refit would keep
+    // briefly removing it from the scene graph and make the button unclickable.
+    // The caption is small + fixed, so the lightweight nudge is enough.
     if (visible) relayoutScreenSpacePanels();
   }
 

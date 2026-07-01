@@ -32,6 +32,7 @@ import {
 import { gameState, type GamePhase } from '../game/GameState.js';
 import { SEASON_ACCENT } from './seasons.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 
 const PANEL_CONFIG = './ui/phase-transition.json';
 
@@ -128,6 +129,7 @@ export class PhaseTransitionSystem extends createSystem({
     this.renderCard(next, info);
     this.setOverlayVisible(true);
     this.setOpacity(0);
+    sfx.chime(); // a calm bell announces the new season / chapter
     this.stage = 'in';
     this.t = 0;
   }
@@ -196,7 +198,7 @@ export class PhaseTransitionSystem extends createSystem({
     });
     // A freshly-shown ScreenSpace panel needs a resize nudge to lay out (it only
     // auto-computes on load + window resize), or it renders mis-sized/invisible.
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.doc);
   }
 
   private text(id: string): UIKit.Text | undefined {

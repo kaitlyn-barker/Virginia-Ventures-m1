@@ -98,9 +98,10 @@
     justify-content: center;
   }
 
-  /* The check mark drawn inside a completed circle. '✓' renders in the UI
-     font (the needs checklist uses it too); the system sets it to '' when the
-     task is still open. */
+  /* The check mark drawn inside a completed circle. The UI font has no emoji
+     glyphs, so the system uses a plain 'x' (font-safe) as the done marker, and
+     sets it to '' when the task is still open. The green-filled circle behind
+     it carries most of the "done" cue. */
   .quest-check {
     font-size: 1.7;
     font-weight: bold;

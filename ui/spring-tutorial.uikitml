@@ -56,10 +56,10 @@
   <span class="tut-intro">Your colony must raise its first crops. Fill all 16 plots - balancing corn and tobacco - then confirm to bring in the harvest.</span>
 
   <span class="tut-step">1. Talk to Thomas, your neighbor, for advice on what to plant.</span>
-  <span class="tut-step">2. Grab a seed bag - corn or tobacco - from the stump beside your field.</span>
-  <span class="tut-step">3. Hold it over a plot until the plot glows green, then let go to plant.</span>
-  <span class="tut-step">4. Plant all 16 plots. Corn feeds your colony; tobacco earns trade money.</span>
-  <span class="tut-step">5. Press Confirm Planting (the panel above the field) once every plot is filled.</span>
+  <span class="tut-step">2. Click a seed bag on the stump - corn or tobacco - to pick that crop.</span>
+  <span class="tut-step">3. Click any plot to plant the crop you picked. Plots glow as you aim.</span>
+  <span class="tut-step">4. Click the other bag any time to switch crops. Corn feeds your colony; tobacco earns money.</span>
+  <span class="tut-step">5. Fill all 16 plots, then press Confirm Planting on the panel above the field.</span>
 
   <button id="tut-begin">Begin</button>
 </div>

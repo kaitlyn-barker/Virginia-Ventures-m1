@@ -40,6 +40,7 @@ import {
 import { gameState } from '../game/GameState.js';
 import { springProgress } from '../game/SpringProgress.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
+import { sfx } from '../audio/Sfx.js';
 import { FarmCell } from './FarmSystem.js';
 
 const TUTORIAL_CONFIG = './ui/spring-tutorial.json';
@@ -67,11 +68,11 @@ export const SpringNeighbor = createComponent('SpringNeighbor', {
 const TIPS: Record<string, { title: string; body: string }> = {
   intro: {
     title: 'Tip',
-    body: 'Grab a seed bag from the stump by your field and hold it over a plot - it glows green - then let go to plant. Talk to Thomas for advice first.',
+    body: 'Click a seed bag on the stump to pick a crop, then click any plot to plant it. Click the other bag to switch crops. Talk to Thomas for advice first.',
   },
   nudge: {
     title: 'Tip',
-    body: 'Head to the stump beside your field, grab a corn or tobacco seed bag, and carry it over a plot to plant it.',
+    body: 'Click a corn or tobacco seed bag on the stump beside your field, then click a plot to plant it. Fill all 16 plots.',
   },
   ready: {
     title: 'Tip',
@@ -147,9 +148,11 @@ export class SpringTutorialSystem extends createSystem({
       .createTransformEntity()
       .addComponent(PanelUI, { config: TIP_CONFIG, maxWidth: 0.95, maxHeight: 0.62 })
       .addComponent(RayInteractable)
+      // Top-CENTER (not the top-right corner) so it never sits under the
+      // objective tracker HUD or get clipped against the very top of the canvas.
       .addComponent(ScreenSpace, {
-        top: '20px',
-        right: '20px',
+        top: '14%',
+        left: 'calc(50vw - 160px)',
         width: '320px',
         height: '210px',
       });
@@ -181,9 +184,10 @@ export class SpringTutorialSystem extends createSystem({
           this.tipDoc = PanelDocument.data.document[entity.index] as
             | UIKitDocument
             | undefined;
-          this.button(this.tipDoc, 'tip-dismiss')?.addEventListener('click', () =>
-            this.setTipVisible(false),
-          );
+          this.button(this.tipDoc, 'tip-dismiss')?.addEventListener('click', () => {
+            sfx.click();
+            this.setTipVisible(false);
+          });
           this.setTipVisible(false);
         },
         true,
@@ -293,6 +297,7 @@ export class SpringTutorialSystem extends createSystem({
   // ───────────────────────────── tips & scripts ──────────────────────────────
 
   private onBegin(): void {
+    sfx.click();
     this.setTutorialVisible(false);
     this.tutorialDismissed = true;
     this.postTip('intro');
@@ -328,7 +333,7 @@ export class SpringTutorialSystem extends createSystem({
     this.container(this.tutorialDoc, 'tut-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.tutorialDoc);
   }
 
   private setTipVisible(visible: boolean): void {
@@ -336,7 +341,7 @@ export class SpringTutorialSystem extends createSystem({
     this.container(this.tipDoc, 'tip-root')?.setProperties({
       display: visible ? 'flex' : 'none',
     });
-    if (visible) relayoutScreenSpacePanels();
+    if (visible) relayoutScreenSpacePanels(this.tipDoc);
   }
 
   // ─────────────────────────────── doc helpers ───────────────────────────────

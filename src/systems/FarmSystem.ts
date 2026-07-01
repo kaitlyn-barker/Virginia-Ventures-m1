@@ -39,11 +39,13 @@ import {
   DoubleSide,
   Grabbed,
   Group,
+  Hovered,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   OneHandGrabbable,
   PlaneGeometry,
+  Pressed,
   Quaternion,
   RayInteractable,
   Transform,
@@ -58,6 +60,7 @@ import {
 // shows it only in its phase (and hides it otherwise). Tagging the field +
 // bags 'Spring' is what registers them in the Spring group (STEP 4).
 import { PhaseObject } from './PhaseSystem.js';
+import { sfx } from '../audio/Sfx.js';
 
 // ─────────────────────────────────── components ──────────────────────────────
 
@@ -117,7 +120,8 @@ const GRID = 4; // 4x4 → 16 cells
 
 /** Colours (period-earthy, matching Settlement.ts's palette). */
 const COLOR_SOIL = 0x5e4126; // tilled-soil brown (a tile's normal colour)
-const COLOR_HIGHLIGHT = 0x8fce7a; // soft green "you'll plant here" highlight
+const COLOR_HIGHLIGHT = 0x8fce7a; // soft green "you'll plant corn here" highlight
+const COLOR_HIGHLIGHT_TOBACCO = 0xe7c66a; // warm gold "you'll plant tobacco here"
 const COLOR_CORN_CROP = 0x4f9a2f; // green corn stalk
 const COLOR_TOBACCO_CROP = 0xc09a3c; // golden-brown tobacco leaves
 const COLOR_CORN_SACK = 0xd8c48a; // light tan sack
@@ -148,6 +152,13 @@ export class FarmSystem extends createSystem({
   bags: { required: [SeedBag, Transform] },
   // All grid cells (queried so logic finds them by query, not a stored array).
   cells: { required: [FarmCell] },
+  // Click-to-plant: pressing a seed bag selects its crop; pressing a plot plants
+  // the selected crop. This is the cross-platform path — a desktop mouse has no
+  // grip button to grab a bag, and the XR ray-trigger drives it too. Hovered
+  // plots glow so the player sees where a click (or the grab-paint) will sow.
+  pressedBags: { required: [SeedBag, Pressed] },
+  pressedCells: { required: [FarmCell, Pressed] },
+  hoveredCells: { required: [FarmCell, Hovered] },
 }) {
   /** Each bag's home transform, keyed by entity index. Immutable after build —
    *  this is fixed layout data, not live entity tracking. */
@@ -167,11 +178,33 @@ export class FarmSystem extends createSystem({
   private bagWorld!: Vector3;
   private cellWorld!: Vector3;
 
+  /** The crop a plot-click will plant. Click a seed bag to change it; defaults
+   *  to corn so the very first plot click does something sensible. */
+  private selectedCrop: Crop = 'corn';
+
   init(): void {
     this.bagWorld = new Vector3();
     this.cellWorld = new Vector3();
     this.buildGrid();
     this.buildSeedBags();
+
+    // ── Click-to-plant wiring (desktop mouse + XR ray) ──────────────────────
+    // Pressing a seed bag selects its crop; pressing a plot plants the selected
+    // crop. The VR grab-paint (drag a held bag across plots) still works too.
+    this.cleanupFuncs.push(
+      this.queries.pressedBags.subscribe('qualify', (bag) =>
+        this.selectCrop(bag.getValue(SeedBag, 'crop') as Crop),
+      ),
+    );
+    this.cleanupFuncs.push(
+      this.queries.pressedCells.subscribe('qualify', (cell) =>
+        this.plantCell(cell, this.selectedCrop),
+      ),
+    );
+    // Keep the chosen bag visibly "picked" (replays once the bags exist).
+    this.cleanupFuncs.push(
+      this.queries.bags.subscribe('qualify', () => this.applySelectionVisual(), true),
+    );
   }
 
   // ───────────────────────────────── grid build ──────────────────────────────
@@ -428,6 +461,10 @@ export class FarmSystem extends createSystem({
       }
     }
 
+    // Pointer/ray hover (desktop mouse + XR ray): glow whatever plot is hovered
+    // so the player sees exactly where a click will plant the selected crop.
+    for (const cell of this.queries.hoveredCells.entities) desired.add(cell);
+
     this.applyHighlights(desired);
   }
 
@@ -459,17 +496,21 @@ export class FarmSystem extends createSystem({
     if (cell.getValue(FarmCell, 'crop') === crop) return;
     cell.setValue(FarmCell, 'crop', crop);
     this.refreshCellVisual(cell);
+    sfx.plant(); // soft earthy pluck each time a plot is actually sown
   }
 
   /** Tint exactly the cells in `desired` green; restore all others to soil. */
   private applyHighlights(desired: Set<Entity>): void {
+    // The highlight colour previews the crop the next click/paint will sow.
+    const tint =
+      this.selectedCrop === 'tobacco' ? COLOR_HIGHLIGHT_TOBACCO : COLOR_HIGHLIGHT;
     // Un-tint cells that are no longer hovered.
     for (const cell of this.highlighted) {
       if (!desired.has(cell)) this.setCellTint(cell, COLOR_SOIL);
     }
     // Tint newly-hovered cells.
     for (const cell of desired) {
-      if (!this.highlighted.has(cell)) this.setCellTint(cell, COLOR_HIGHLIGHT);
+      if (!this.highlighted.has(cell)) this.setCellTint(cell, tint);
     }
     // Remember the new highlighted set for next frame's diff.
     this.highlighted.clear();
@@ -482,6 +523,24 @@ export class FarmSystem extends createSystem({
       | MeshStandardMaterial
       | undefined;
     mat?.color.set(color);
+  }
+
+  /** Set the active crop and refresh the bag selection highlight. */
+  private selectCrop(crop: Crop): void {
+    this.selectedCrop = crop;
+    this.applySelectionVisual();
+    sfx.select(); // friendly "boop" confirming the chosen crop
+  }
+
+  /** Enlarge the selected crop's bag and rest the other, so the current choice
+   *  is unmistakable to a young player. */
+  private applySelectionVisual(): void {
+    for (const bag of this.queries.bags.entities) {
+      const obj = bag.object3D;
+      if (!obj) continue;
+      const isSel = (bag.getValue(SeedBag, 'crop') as Crop) === this.selectedCrop;
+      obj.scale.setScalar(isSel ? 1.2 : 1);
+    }
   }
 
   /**

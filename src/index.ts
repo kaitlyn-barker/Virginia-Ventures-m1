@@ -1,6 +1,6 @@
 import { AssetManifest, SessionMode, World } from "@iwsdk/core";
 
-import { Interactable, PanelUI, ScreenSpace } from "@iwsdk/core";
+import { RayInteractable, PanelUI, ScreenSpace, Follower } from "@iwsdk/core";
 
 import { PanelSystem } from "./panel.js";
 
@@ -78,6 +78,9 @@ import { Reflection } from "./systems/Reflection.js";
 // "Select to talk/trade" hover affordance shown when the built-in pointer is
 // over an interactive NPC. Read-only; adds the prompt, never changes gameplay.
 import { NpcPromptSystem } from "./systems/NpcPromptSystem.js";
+// Desktop-only view turning: ← → (and Q/E) yaw the player so a mouse-and-
+// keyboard player can look around. XR uses the headset/thumbstick instead.
+import { DesktopLookSystem } from "./systems/DesktopLookSystem.js";
 // TEMP: placeholder per-phase markers so the state machine is testable today.
 import { buildPhaseScaffold } from "./systems/phase-scaffold.js";
 
@@ -99,10 +102,21 @@ import { buildWaterfront } from "./environment/Waterfront.js";
 // exist yet, so these are static and tinted per role).
 import { buildColonists } from "./environment/Colonists.js";
 
+// Extra scenery (trees, barrels, crates, chest, ship, cabins) built from the
+// same flat-shaded primitives + palette as the rest of the village.
+import { buildProps } from "./environment/Props.js";
+
+// Keeps a persistent HUD/ScreenSpace panel in front of the headset in XR (a
+// no-op on desktop, where ScreenSpace head-locks it under the camera).
+import { hudFollow } from "./ui/hudFollow.js";
+
 // No external assets are needed yet — the settlement is built entirely from
 // Three.js primitives. Real building/prop GLBs will be added to this manifest
 // later when they exist in public/gltf/. The welcome panel loads its UI config
 // directly via PanelUI (./ui/welcome.json), not through this manifest.
+// No external assets: every prop is built from Three.js primitives (the
+// settlement, waterfront, colonists, and environment/Props.ts all share the same
+// flat-shaded `solid()` helper + palette), so the manifest stays empty.
 const assets: AssetManifest = {};
 
 World.create(document.getElementById("scene-container") as HTMLDivElement, {
@@ -153,6 +167,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // ── Populate the settlement with colonist NPCs ───────────────────────────
   buildColonists(world);
 
+  // ── Layer the modeled 3D art props over the primitive village ────────────
+  buildProps(world);
+
   // Welcome panel: the intro popup shown first on load ("Virginia Ventures,
   // 1620"). Shown full-screen in browser via ScreenSpace, and as a world-space
   // panel in XR. PanelSystem wires its buttons; "Enter the Colony" hides it and
@@ -164,13 +181,23 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       maxHeight: 0.65,
       maxWidth: 1.3,
     })
-    .addComponent(Interactable)
+    // RayInteractable so the buttons are clickable by both the desktop pointer
+    // and the XR ray. ScreenSpace centers the title card on desktop (it used to
+    // be pinned top-left, covering the live settlement) and renders it world-
+    // space in XR. Tagged PhaseObject:Arrival so PhaseSystem auto-hides it the
+    // moment the player leaves the intro (and re-shows it on an Arrival revisit).
+    .addComponent(RayInteractable)
     .addComponent(ScreenSpace, {
-      top: "20px",
-      left: "20px",
-      width: "380px",
-      height: "46vh",
-    });
+      top: "12%",
+      left: "20vw",
+      width: "60vw",
+      height: "64%",
+    })
+    .addComponent(PhaseObject, { phase: "Arrival" })
+    // In immersive XR, ScreenSpace returns the panel to world space at its
+    // Transform (calibrated for the desktop camera), so it would sit behind the
+    // XR spawn. Follower keeps it in front of the headset (no-op on desktop).
+    .addComponent(Follower, hudFollow(world.player.head, [0, 0, -1.6]));
   panelEntity.object3D!.position.set(0, 1.6, 8);
 
   world.registerSystem(PanelSystem);
@@ -295,6 +322,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // Purely additive — it reads state and never alters interactivity or scoring.
   world.registerSystem(NpcPromptSystem);
 
+  // Desktop view turning (← → / Q E). Registered at the default priority so the
+  // cinematics (which pin the rig at a late priority during cutscenes) still win
+  // while they play; the rest of the time this rotates the player freely.
+  world.registerSystem(DesktopLookSystem);
+
   // PhaseSystem subscribes to phase changes and toggles per-phase objects.
   // SeasonBannerSystem updates + animates the on-screen season banner.
   world.registerSystem(PhaseSystem);
@@ -312,7 +344,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       maxWidth: 1.7,
       maxHeight: 0.3,
     })
-    .addComponent(Interactable)
+    .addComponent(RayInteractable)
     .addComponent(ScreenSpace, {
       bottom: "16px",
       left: "8vw",
@@ -322,32 +354,34 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       // depth (0.2) so dialogues/decree/recap popups render in front of it.
       zOffset: 0.26,
     })
-    .addComponent(SeasonBanner);
+    .addComponent(SeasonBanner)
+    // XR: keep the season nav bar low and in front of the headset.
+    .addComponent(Follower, hudFollow(world.player.head, [0, -0.5, -1.7]));
 
   // TEMP scaffolding: five placeholder markers (one per phase) so you can watch
   // the state machine enable exactly one group at a time. Remove this once the
   // real per-phase content (ArrivalSequence, market, ship, …) is tagged.
-  buildPhaseScaffold(world);
+  // DEV-only, gated exactly like DebugMenuSystem below so the placeholder cubes
+  // never appear in a shipped build (Rollup strips the call when DEV === false).
+  if (import.meta.env.DEV) buildPhaseScaffold(world);
 
   // ── Core game architecture wiring (Step 3) ──────────────────────────────
   // Confirm the shared game state initializes in the 'Arrival' phase. Because
   // GameState is a module-level singleton, importing it above already ran its
   // initializer — currentPhase is 'Arrival' before this line executes.
-  console.log(`[Game] Initialized in phase: ${gameState.currentPhase}`);
-
-  // Temporary phase-change logger (Step 3). Prints a clearly-bannered line at
-  // every transition so the playthrough is easy to follow in the console:
-  //   load → Arrival → (pick "Spring" on the banner) → Spring → Summer → Fall
-  //   → Winter. This is a debugging aid, not gameplay — remove before ship.
-  gameState.onPhaseChanged((oldPhase, newPhase) => {
-    console.log(`=== PHASE TRANSITION: ${oldPhase} -> ${newPhase} ===`);
-  });
-
-  // Expose the singletons on window so they can be driven from the browser
-  // console for verification (e.g. `game.advancePhase()`). Dev-only convenience.
-  (window as unknown as Record<string, unknown>).game = gameState;
-  (window as unknown as Record<string, unknown>).score = colonyScore;
-  (window as unknown as Record<string, unknown>).inventory = playerInventory;
+  // ── DEV-only diagnostics ────────────────────────────────────────────────
+  // Phase logger + window singletons for console-driven verification. Gated on
+  // import.meta.env.DEV so production ships clean: no console spam, and no
+  // global `game`/`score`/`inventory` handles leaking onto window.
+  if (import.meta.env.DEV) {
+    console.log(`[Game] Initialized in phase: ${gameState.currentPhase}`);
+    gameState.onPhaseChanged((oldPhase, newPhase) => {
+      console.log(`=== PHASE TRANSITION: ${oldPhase} -> ${newPhase} ===`);
+    });
+    (window as unknown as Record<string, unknown>).game = gameState;
+    (window as unknown as Record<string, unknown>).score = colonyScore;
+    (window as unknown as Record<string, unknown>).inventory = playerInventory;
+  }
 
   // ── DEV-ONLY test menu (Step 4) ──────────────────────────────────────────
   // The web equivalent of `#if UNITY_EDITOR`. In `vite dev` (and the IWER

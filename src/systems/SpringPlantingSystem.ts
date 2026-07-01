@@ -180,6 +180,9 @@ export class SpringPlantingSystem extends createSystem({
     // Guard: ignore clicks unless we're in Spring with a fully-planted field
     // (the button is also styled disabled in that case).
     if (gameState.currentPhase !== 'Spring' || !this.canConfirm) return;
+    // Locked-tracker revisit: Spring is already graded and recorded, so a second
+    // confirm must not re-apply the scoring tradeoff or advance the phase again.
+    if (gameState.hasCompletedPhase('Spring')) return;
 
     const corn = this.queries.cornCells.entities.size;
     const tobacco = this.queries.tobaccoCells.entities.size;
