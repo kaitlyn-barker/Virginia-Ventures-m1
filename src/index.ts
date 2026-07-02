@@ -110,6 +110,10 @@ import { buildProps } from "./environment/Props.js";
 // no-op on desktop, where ScreenSpace head-locks it under the camera).
 import { hudFollow } from "./ui/hudFollow.js";
 
+// Lets UI systems force screen-space panels to re-fit their layout after their
+// content settles (needs the live World; registered once below).
+import { initRelayout } from "./ui-relayout.js";
+
 // No external assets are needed yet — the settlement is built entirely from
 // Three.js primitives. Real building/prop GLBs will be added to this manifest
 // later when they exist in public/gltf/. The welcome panel loads its UI config
@@ -152,6 +156,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   },
 }).then((world) => {
   const { camera } = world;
+
+  // Give the screen-space relayout helper a handle to the live world so panels
+  // (e.g. the Summer "Done Trading" HUD) can re-fit once their content settles.
+  initRelayout(world);
 
   // Initial browser vantage: stand at the south end of the main path, looking
   // north up the path toward the market and barn. Camera faces -Z by default.
