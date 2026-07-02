@@ -94,6 +94,13 @@ export class RoyalDecreeSystem extends createSystem({
         left: '28vw',
         width: '44vw',
         height: '80%',
+        // Sit a hair closer than the default popup depth (0.2) so the decree is
+        // unambiguously the front-most INTERACTIVE layer: the browser pointer
+        // system picks the dominant hit among same-depth panels by a tie-break,
+        // so any other screen-space panel that lingers at 0.2 could otherwise
+        // steal the Continue click. Still behind the transition card (0.14) and
+        // well beyond the camera near-clip (~0.1).
+        zOffset: 0.18,
       });
     this.panelEntity.object3D!.visible = false;
 
