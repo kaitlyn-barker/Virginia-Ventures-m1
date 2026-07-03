@@ -195,8 +195,11 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     // space in XR. Tagged PhaseObject:Arrival so PhaseSystem auto-hides it the
     // moment the player leaves the intro (and re-shows it on an Arrival revisit).
     .addComponent(RayInteractable)
+    // width/height size the card (aspect-fit inside this box); the on-screen
+    // position is pinned dead-center by PanelSystem each frame, so top/left are
+    // only an approximate fallback for the frame before that runs.
     .addComponent(ScreenSpace, {
-      top: "12%",
+      top: "18%",
       left: "20vw",
       width: "60vw",
       height: "64%",

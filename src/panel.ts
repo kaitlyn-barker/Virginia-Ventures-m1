@@ -3,7 +3,6 @@ import {
   PanelUI,
   PanelDocument,
   eq,
-  VisibilityState,
   UIKitDocument,
   UIKit,
 } from "@iwsdk/core";
@@ -38,25 +37,24 @@ export class PanelSystem extends createSystem({
           ?.setProperties({ display: "none" });
         arrivalSequence.emitEnterColony();
       });
-
-      // Secondary: toggle the immersive VR session. Kept available so the
-      // experience can still be entered in a headset (the cinematic plays there
-      // too, as a world-space title card).
-      const xrButton = document.getElementById("xr-button") as UIKit.Text;
-      xrButton?.addEventListener("click", () => {
-        if (this.world.visibilityState.value === VisibilityState.NonImmersive) {
-          this.world.launchXR();
-        } else {
-          this.world.exitXR();
-        }
-      });
-      this.world.visibilityState.subscribe((visibilityState) => {
-        if (visibilityState === VisibilityState.NonImmersive) {
-          xrButton?.setProperties({ text: "Enter VR" });
-        } else {
-          xrButton?.setProperties({ text: "Return to Browser" });
-        }
-      });
     });
+  }
+
+  // Keep the welcome card dead-center on screen. ScreenSpace anchors a panel by
+  // its TOP-LEFT corner and aspect-fits it inside its box, so on wide desktop
+  // viewports the card drifts left and low. Zeroing the camera-space X/Y each
+  // frame pins the card's center to the screen center (its depth Z is left
+  // untouched; in XR the doc already sits at its parent's origin, so this is a
+  // no-op there).
+  update() {
+    for (const entity of this.queries.welcomePanel.entities) {
+      const document = PanelDocument.data.document[entity.index] as
+        | UIKitDocument
+        | undefined;
+      if (document) {
+        document.position.x = 0;
+        document.position.y = 0;
+      }
+    }
   }
 }
