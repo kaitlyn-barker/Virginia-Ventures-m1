@@ -188,7 +188,16 @@ export class PhaseTransitionSystem extends createSystem({
   }
 
   private setOpacity(opacity: number): void {
-    this.container('trans-overlay')?.setProperties({ opacity });
+    this.container('trans-overlay')?.setProperties({
+      opacity,
+      // Interactivity MUST follow visibility. This overlay is full-screen and
+      // sits at zOffset 0.14 — in front of every popup, including the Royal
+      // Decree (0.18). If it's ever left faded-out but still interactive (an
+      // interrupted / not-fully-committed fade-out), it silently swallows the
+      // clicks meant for the panel behind it — the "Continue not clickable" bug.
+      // So it only absorbs pointer input while it's actually visible.
+      pointerEvents: opacity <= 0.001 ? 'none' : 'auto',
+    });
   }
 
   private setOverlayVisible(visible: boolean): void {
