@@ -130,14 +130,14 @@ export class ScoreHudSystem extends createSystem({
       .createTransformEntity()
       .addComponent(PanelUI, {
         config: PANEL_CONFIG,
-        maxWidth: 1.15,
+        maxWidth: 1.4,
         maxHeight: 0.78,
       })
       .addComponent(Interactable)
       .addComponent(ScreenSpace, {
         top: '20px',
         left: '20px',
-        width: '270px',
+        width: '328px',
         height: '188px',
         // Persistent HUD: sit slightly farther than the default popup depth so
         // dialogues / decree / recap popups render in front of it.

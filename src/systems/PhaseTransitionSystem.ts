@@ -3,8 +3,8 @@
  *
  * Registers itself as gameState's transition runner: when the phase is about to
  * change, instead of the new phase activating immediately, this system fades a
- * full-screen card in over the scene (0.5s), holds it (3s), then fades back out
- * (0.5s) — and only commits the new phase at the midpoint, while the screen is
+ * full-screen card in over the scene (0.4s), holds it (1.6s), then fades back out
+ * (0.4s) — and only commits the new phase at the midpoint, while the screen is
  * fully black. So the player reads "Summer — No one survives alone…" and the
  * world has already swapped over by the time the card lifts.
  *
@@ -36,8 +36,8 @@ import { sfx } from '../audio/Sfx.js';
 
 const PANEL_CONFIG = './ui/phase-transition.json';
 
-const FADE = 0.5; // seconds to fade in / out
-const HOLD = 3.0; // seconds the card holds at full opacity
+const FADE = 0.4; // seconds to fade in / out
+const HOLD = 1.6; // seconds the card holds at full opacity
 
 /** Per-phase card copy. Arrival has no card (it's the boot/reset state). */
 const CARD: Partial<Record<GamePhase, { subtitle: string; teaser: string }>> = {
@@ -113,6 +113,35 @@ export class PhaseTransitionSystem extends createSystem({
     // Become gameState's transition runner. Clear it on teardown.
     gameState.setTransitionRunner((_old, next, commit) => this.begin(next, commit));
     this.cleanupFuncs.push(() => gameState.setTransitionRunner(null));
+
+    // Keep the backdrop matched to the viewport while a card is showing, so a
+    // mid-transition window resize doesn't reintroduce letterboxing / off-center.
+    const onResize = () => {
+      if (this.stage === 'idle') return;
+      this.sizeOverlayToViewport();
+      relayoutScreenSpacePanels(this.doc);
+    };
+    window.addEventListener('resize', onResize);
+    this.cleanupFuncs.push(() => window.removeEventListener('resize', onResize));
+  }
+
+  /**
+   * Stretch the dark backdrop to the viewport's exact aspect ratio so it fully
+   * covers the screen with no letterbox — which, because ScreenSpace anchors the
+   * fitted panel at top-left, is also what lands the flex-centered card dead
+   * center. A fixed-aspect (square) backdrop instead fits-by-height on a
+   * landscape viewport and clings to the left edge, dragging the card off-center
+   * and leaving a strip of world showing — the "covers half the screen" bug.
+   */
+  private sizeOverlayToViewport(): void {
+    const canvas = this.renderer?.domElement as HTMLCanvasElement | undefined;
+    const w = canvas?.clientWidth || window.innerWidth;
+    const h = canvas?.clientHeight || window.innerHeight;
+    const aspect = h > 0 ? w / h : 1;
+    this.container('trans-overlay')?.setProperties({
+      width: 120 * aspect,
+      height: 120,
+    });
   }
 
   /** Start a transition for `next`, deferring `commit` until the card is black. */
@@ -127,6 +156,7 @@ export class PhaseTransitionSystem extends createSystem({
     this.pendingCommit = commit;
     this.committed = false;
     this.renderCard(next, info);
+    this.sizeOverlayToViewport();
     this.setOverlayVisible(true);
     this.setOpacity(0);
     sfx.chime(); // a calm bell announces the new season / chapter

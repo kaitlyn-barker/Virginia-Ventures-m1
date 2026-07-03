@@ -50,6 +50,25 @@
     background-color: #3a5a8c;
   }
 
+  /* Names each bar so a student can see what every color stands for. Fixed
+     width so all three tracks line up; text is tinted to its bar's hue. */
+  .hud-label {
+    width: 8;
+    margin-right: 0.6;
+    font-size: 1.35;
+    font-weight: medium;
+    text-align: left;
+  }
+  .label-food {
+    color: #6bbf5e;
+  }
+  .label-wealth {
+    color: #d9bd63;
+  }
+  .label-crown {
+    color: #8aa9de;
+  }
+
   /* The dark semi-transparent track. The fill is its left-anchored child. */
   .hud-track {
     display: flex;
@@ -97,7 +116,7 @@
   .hud-float {
     positionType: absolute;
     positionTop: 0.6;
-    positionLeft: 4.4;
+    positionLeft: 12;
     padding-top: 0.15;
     padding-bottom: 0.15;
     padding-left: 0.7;
@@ -155,6 +174,7 @@
 <div id="hud-root" class="hud-panel">
   <div id="hud-row-food" class="hud-row">
     <div class="hud-icon icon-food"></div>
+    <span class="hud-label label-food">Food</span>
     <div class="hud-track">
       <div id="hud-fill-food" class="hud-fill fill-food"></div>
     </div>
@@ -164,6 +184,7 @@
 
   <div id="hud-row-wealth" class="hud-row">
     <div class="hud-icon icon-wealth"></div>
+    <span class="hud-label label-wealth">Wealth</span>
     <div class="hud-track">
       <div id="hud-fill-wealth" class="hud-fill fill-wealth"></div>
     </div>
@@ -173,6 +194,7 @@
 
   <div id="hud-row-crown" class="hud-row">
     <div class="hud-icon icon-crown"></div>
+    <span class="hud-label label-crown">Crown</span>
     <div class="hud-track">
       <div id="hud-fill-crown" class="hud-fill fill-crown"></div>
     </div>

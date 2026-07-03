@@ -26,7 +26,7 @@
     margin-top: 0.3;
   }
 
-  /* Plain-language controls so a desktop player knows how to move + turn. */
+  /* Plain-language controls so a player knows how to move + turn. */
   .controls-hint {
     font-size: 1.7;
     font-weight: medium;
@@ -37,6 +37,16 @@
     border-radius: 1;
     padding: 1;
     width: 100%;
+  }
+
+  /* Small caption that labels which control scheme the hint below is for. */
+  .controls-title {
+    font-size: 1.5;
+    font-weight: medium;
+    color: #cbb78f;
+    text-align: left;
+    margin-top: 1.2;
+    letter-spacing: 0.05;
   }
 
   /* Primary call to action: begins the arrival orientation cinematic. */
@@ -58,6 +68,9 @@
 <div id="welcome-root" class="panel-container">
   <span class="heading"> Virginia Ventures, 1620 </span>
   <span class="sub-heading"> You've crossed the Atlantic to a new colony. Plant to feed your people, trade for wealth, and keep the Crown's favor as the settlement weathers four seasons. Every choice has a cost - prosperity is a balance.</span>
+  <span class="controls-title">Move in Desktop Mode</span>
   <span class="controls-hint">Move: W A S D keys  -  Turn: Left / Right arrow keys  -  Click anyone with a gold ring to talk or trade.</span>
+  <span class="controls-title">Move in VR Headset Mode</span>
+  <span class="controls-hint">Move: Left thumbstick  -  Turn: Right thumbstick  -  Point a controller and pull the trigger to talk or trade.</span>
   <button id="enter-colony">Enter the Colony</button>
 </div>
