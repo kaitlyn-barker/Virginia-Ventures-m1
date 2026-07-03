@@ -90,6 +90,16 @@
     text-align: center;
     cursor: pointer;
   }
+
+  /* Small hint under the button: Enter always advances the decree, even if a
+     browser quirk makes the on-screen button hard to click. Revealed with the
+     button at the finale. */
+  .decree-hint {
+    font-size: 1.3;
+    color: #6e1d00;
+    text-align: center;
+    margin-top: 0.8;
+  }
 </style>
 <div id="decree-root" class="decree">
   <div id="decree-seal" class="seal"><span class="seal-r">R</span></div>
@@ -116,4 +126,5 @@
   >
 
   <button id="decree-continue">Continue</button>
+  <span id="decree-hint" class="decree-hint">or press Enter</span>
 </div>

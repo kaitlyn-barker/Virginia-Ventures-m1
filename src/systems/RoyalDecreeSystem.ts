@@ -151,6 +151,19 @@ export class RoyalDecreeSystem extends createSystem({
   }
 
   update(delta: number) {
+    // Keyboard path to advance the decree once the Continue button is revealed.
+    // It never depends on the pointer hit-testing the on-screen button, so it
+    // still works if a viewport quirk makes that button hard to click.
+    if (
+      this.finaleShown &&
+      this.panelEntity?.object3D?.visible &&
+      (this.input.keyboard.getKeyDown('Enter') ||
+        this.input.keyboard.getKeyDown('Space'))
+    ) {
+      this.onContinue();
+      return;
+    }
+
     if (!this.presenting) return;
     this.clock += delta;
 
@@ -167,6 +180,7 @@ export class RoyalDecreeSystem extends createSystem({
       this.finaleShown = true;
       this.setOpacity('decree-captain', 1);
       this.setOpacity('decree-continue', 1);
+      this.setOpacity('decree-hint', 1);
       // Re-fit the on-screen panel now that every element is present, so its
       // interactive bounds cover the freshly-revealed Continue button (the
       // one-time fit at present() happened before this content existed).
@@ -203,6 +217,7 @@ export class RoyalDecreeSystem extends createSystem({
     for (const id of RULE_IDS) this.setOpacity(id, 0);
     this.setOpacity('decree-captain', 0);
     this.setOpacity('decree-continue', 0);
+    this.setOpacity('decree-hint', 0);
   }
 
   /**
