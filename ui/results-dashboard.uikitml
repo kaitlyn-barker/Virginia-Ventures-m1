@@ -7,8 +7,9 @@
 
      NOTE on the pillar markers: the bundled UIKit font has no emoji glyphs, so
      the old corn/coin/crown emoji rendered as empty boxes and spammed the
-     console. We use short text tags (Food / Gold / Crown) instead — the pillar
-     label beside each one already spells out the full meaning. */
+     console. Earlier we swapped them for short text tags (Food / Gold / Crown),
+     but those overflowed their tiny fixed-width box and collided with the pillar
+     label — so they're gone. The pillar label already spells out each meaning. */
   .dash {
     display: flex;
     flex-direction: column;
@@ -28,7 +29,7 @@
     margin-bottom: 1.6;
   }
 
-  /* One score row: [icon] [pillar name] [bar track > bar fill] [number] [tag]. */
+  /* One score row: [pillar name] [bar track > bar fill] [number] [tag]. */
   .score-row {
     display: flex;
     flex-direction: row;
@@ -37,14 +38,8 @@
     padding-top: 0.5;
     padding-bottom: 0.5;
   }
-  .icon {
-    width: 4;
-    font-size: 2.6;
-    text-align: center;
-    margin-right: 0.6;
-  }
   .pillar {
-    width: 17;
+    width: 20;
     font-size: 1.8;
     color: #e8dcc0;
     text-align: left;
@@ -135,7 +130,6 @@
 
   <!-- Food Supply -->
   <div class="score-row">
-    <span class="icon">Food</span>
     <span class="pillar">Food Supply</span>
     <div class="bar-track"><div id="bar-food" class="bar-fill"></div></div>
     <span id="num-food" class="num">50/100</span>
@@ -144,7 +138,6 @@
 
   <!-- Trade Wealth -->
   <div class="score-row">
-    <span class="icon">Gold</span>
     <span class="pillar">Trade Wealth</span>
     <div class="bar-track"><div id="bar-wealth" class="bar-fill"></div></div>
     <span id="num-wealth" class="num">50/100</span>
@@ -153,7 +146,6 @@
 
   <!-- Crown Reputation -->
   <div class="score-row">
-    <span class="icon">Crown</span>
     <span class="pillar">Crown Reputation</span>
     <div class="bar-track"><div id="bar-rep" class="bar-fill"></div></div>
     <span id="num-rep" class="num">50/100</span>
