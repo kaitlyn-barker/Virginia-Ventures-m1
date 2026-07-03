@@ -130,6 +130,13 @@ export interface GameState {
   setPhase(phase: GamePhase): void;
 
   /**
+   * Mark progress unlocked THROUGH `phase` (bumps `furthestPhaseIndex` so
+   * `setPhase` will allow a forward jump there). Used by the dev tools to skip
+   * ahead without playing the prior seasons; a no-op if already unlocked.
+   */
+  unlockThrough(phase: GamePhase): void;
+
+  /**
    * Register the phase-transition runner (the chapter-card system). Pass `null`
    * to clear it and go back to immediate phase changes.
    */
@@ -259,6 +266,11 @@ export const gameState: GameState = {
       return;
     }
     applyPhaseChange(this, oldPhase, phase);
+  },
+
+  unlockThrough(phase: GamePhase): void {
+    const idx = PHASE_ORDER.indexOf(phase);
+    if (idx > this.furthestPhaseIndex) this.furthestPhaseIndex = idx;
   },
 
   isPhaseUnlocked(phase: GamePhase): boolean {

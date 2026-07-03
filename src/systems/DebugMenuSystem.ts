@@ -186,6 +186,9 @@ export class DebugMenuSystem extends createSystem({
 
   private skipTo(phase: Exclude<GamePhase, 'Arrival'>): void {
     PHASE_SEEDS[phase]();
+    // Dev tool: unlock the target first so setPhase allows the forward jump
+    // (normal play gates ahead-of-progress phases behind advancePhase()).
+    gameState.unlockThrough(phase);
     gameState.setPhase(phase);
     console.log(`DEBUG: Skipped to ${phase}`);
   }
