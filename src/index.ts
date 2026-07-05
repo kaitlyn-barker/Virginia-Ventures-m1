@@ -462,6 +462,12 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   //    decree Continue actually hits the button on the player's viewport. Remove
   //    once the click issue is diagnosed. Harmless: it only reads + logs. ──────
   {
+    // TEMP: console shortcut so testing doesn't require replaying to Fall each
+    // time — run `__toFall()` in the console, wait ~12s for the decree.
+    (window as unknown as Record<string, unknown>).__toFall = () => {
+      gameState.unlockThrough("Fall");
+      gameState.setPhase("Fall");
+    };
     const canvas = document.querySelector("canvas");
     const rc = new Raycaster();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
