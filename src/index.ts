@@ -1,6 +1,12 @@
 import { AssetManifest, SessionMode, World } from "@iwsdk/core";
 
-import { RayInteractable, PanelUI, ScreenSpace, Follower } from "@iwsdk/core";
+import {
+  RayInteractable,
+  PanelUI,
+  ScreenSpace,
+  Follower,
+  CanvasPointerSystem,
+} from "@iwsdk/core";
 
 import { PanelSystem } from "./panel.js";
 
@@ -250,6 +256,20 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // until the mouse physically moves — the Royal Decree / ship-trade dead-click
   // bug. See the header comment in PointerRefreshSystem.ts.
   world.registerSystem(PointerRefreshSystem);
+
+  // Re-register the SDK's canvas pointer forwarder to run LAST in the frame
+  // (priority 60 > TradeShipArrival 40 / TradeShipDeparture 41 / Waypoint 45).
+  // At its default early slot it raycasts against MID-FRAME transforms: while
+  // a cinematic holds the camera, LocomotionSystem has already applied the
+  // player's accumulated WASD offset to the rig but the cinematic hasn't yet
+  // re-locked it — so every mouse ray originates from a phantom pose that is
+  // walked-rig ∘ locked-camera, and ALL panels (decree Continue, ship trade,
+  // season tabs) go unclickable for any player who has walked. Processing
+  // pointer events after every transform writer makes the rays match what the
+  // player actually sees. (The dead state was reproduced and this fix
+  // verified by simulating WASD during the locked Royal Decree.)
+  world.unregisterSystem(CanvasPointerSystem);
+  world.registerSystem(CanvasPointerSystem, { priority: 60 });
 
   // ── Season state machine + banner ────────────────────────────────────────
   // Register the custom components BEFORE the systems that query them and

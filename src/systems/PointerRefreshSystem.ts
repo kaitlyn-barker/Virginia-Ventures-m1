@@ -20,9 +20,32 @@
  * from a real move, so it re-raycasts against the CURRENT scene and the
  * committed intersection tracks reality. ~7 events/sec only while idle —
  * negligible next to the per-move raycasts the app already does.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * SECOND JOB — camera-chain reconciliation (the DEEPER dead-click cause):
+ * @pmndrs/pointer-events builds each mouse ray by RECOMPOSING the camera's
+ * world matrix from LOCAL matrices up the parent chain
+ * (updateAndCheckWorldTransformation), while the renderer trusts the stored
+ * `matrixWorld`. IWSDK's player rig drives some of those nodes by writing
+ * matrixWorld directly, leaving their locals stale — normally harmless
+ * because the two paths stay equal. But when a cinematic locks the camera
+ * (TradeShipArrival holds the dock view through the whole Fall set-piece)
+ * the player's accumulated WASD movement lives ONLY in the stale locals: the
+ * render shows the locked dock framing while every pointer ray originates
+ * from where the player last walked. Result: ALL panels (decree Continue,
+ * ship trade, season tabs) go globally unclickable — no hover cursor, no
+ * errors, keyboard still works — but only for players who actually walked,
+ * which is why no jump-to-phase test ever reproduced it.
+ *
+ * THE FIX: every frame, walk the camera's ancestor chain and, wherever
+ * parentWorld × local no longer matches the node's authoritative
+ * matrixWorld, rewrite the node's LOCAL transform from that matrixWorld.
+ * After reconciliation both bookkeeping paths agree, so pointer rays always
+ * originate exactly where the camera renders from. When nothing diverged
+ * (normal play) the comparison is a cheap no-op.
  */
 
-import { createSystem } from '@iwsdk/core';
+import { createSystem, Matrix4, type Object3D } from '@iwsdk/core';
 
 /** Re-sync cadence while the mouse is idle (seconds). Fast enough that a
  *  panel appearing under the cursor is clickable before a human can react. */
@@ -42,6 +65,12 @@ export class PointerRefreshSystem extends createSystem({}) {
   private ignoreSynthetic = false;
   /** Seconds since the last real OR synthetic move reached the forwarder. */
   private idleClock = 0;
+
+  // Preallocated scratch for the camera-chain reconciliation (no per-frame GC).
+  private parentWorld!: Matrix4;
+  private expected!: Matrix4;
+  private parentInv!: Matrix4;
+  private chain: Object3D[] = [];
 
   init() {
     const canvas = this.renderer.domElement;
@@ -76,6 +105,39 @@ export class PointerRefreshSystem extends createSystem({}) {
       canvas.removeEventListener('pointerup', onUp, { capture: true });
       canvas.removeEventListener('pointerleave', onLeave, { capture: true });
     });
+
+    this.parentWorld = new Matrix4();
+    this.expected = new Matrix4();
+    this.parentInv = new Matrix4();
+  }
+
+  /**
+   * Make parentWorld × local == matrixWorld hold for every node from the
+   * scene down to the camera, adopting each node's authoritative matrixWorld
+   * into its local transform wherever the two bookkeeping paths diverged
+   * (see the header comment). No-op when nothing diverged.
+   */
+  private reconcileCameraChain(): void {
+    this.chain.length = 0;
+    let node: Object3D | null = this.camera;
+    while (node) {
+      this.chain.push(node);
+      node = node.parent;
+    }
+    this.parentWorld.identity();
+    for (let i = this.chain.length - 1; i >= 0; i--) {
+      const n = this.chain[i];
+      this.expected.multiplyMatrices(this.parentWorld, n.matrix);
+      if (!matricesClose(this.expected.elements, n.matrixWorld.elements)) {
+        // Adopt the render-authoritative world matrix into the locals so the
+        // pointer library's local-chain recomposition reproduces it exactly.
+        this.parentInv.copy(this.parentWorld).invert();
+        n.matrix.multiplyMatrices(this.parentInv, n.matrixWorld);
+        n.matrix.decompose(n.position, n.quaternion, n.scale);
+      }
+      this.parentWorld.copy(n.matrixWorld);
+    }
+    this.chain.length = 0;
   }
 
   update(delta: number) {
@@ -85,6 +147,11 @@ export class PointerRefreshSystem extends createSystem({}) {
     // refresher; if update() is running at all, the loop is alive and the
     // ~7 events/sec are harmless.
     if (this.renderer.xr.isPresenting) return;
+
+    // Keep pointer rays and rendered view in agreement even while cinematics
+    // hold the camera — runs every frame, regardless of mouse state.
+    this.reconcileCameraChain();
+
     if (!this.inside || this.buttonHeld) return;
 
     this.idleClock += delta;
@@ -109,4 +176,14 @@ export class PointerRefreshSystem extends createSystem({}) {
     );
     this.ignoreSynthetic = false;
   }
+}
+
+/** Element-wise matrix comparison with a tolerance loose enough to ignore
+ *  float noise but far tighter than any real pose divergence (which is on
+ *  the order of whole meters when the player has walked). */
+function matricesClose(a: ArrayLike<number>, b: ArrayLike<number>): boolean {
+  for (let i = 0; i < 16; i++) {
+    if (Math.abs(a[i] - b[i]) > 1e-4) return false;
+  }
+  return true;
 }
