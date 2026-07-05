@@ -4,6 +4,11 @@ import { RayInteractable, PanelUI, ScreenSpace, Follower } from "@iwsdk/core";
 
 import { PanelSystem } from "./panel.js";
 
+// Anti-stale-pointer hardening: re-syncs the pointer's scene intersection
+// while the mouse is idle so panels appearing under a stationary cursor
+// (decree, ship trade, tutorials) are immediately clickable.
+import { PointerRefreshSystem } from "./systems/PointerRefreshSystem.js";
+
 // Season state machine: toggles per-phase objects and drives the banner.
 import { PhaseSystem, PhaseObject } from "./systems/PhaseSystem.js";
 import {
@@ -238,6 +243,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   panelEntity.object3D!.position.set(0, 1.6, 8);
 
   world.registerSystem(PanelSystem);
+
+  // Keep desktop pointer picking honest while the mouse is stationary: the
+  // pointer forwarder only re-raycasts on pointermove, so a panel that appears
+  // (or a camera that moves) under a motionless cursor is otherwise unclickable
+  // until the mouse physically moves — the Royal Decree / ship-trade dead-click
+  // bug. See the header comment in PointerRefreshSystem.ts.
+  world.registerSystem(PointerRefreshSystem);
 
   // ── Season state machine + banner ────────────────────────────────────────
   // Register the custom components BEFORE the systems that query them and
