@@ -3,18 +3,16 @@
  *
  * Same module-singleton pattern as GameState/ColonyScore (see GameState.ts for
  * the Unity→web "DontDestroyOnLoad singleton" explanation): one object, imported
- * everywhere, alive for the whole tab session. A hand-rolled emitter lets any
- * system react when a setting changes (the SettingsSystem applies them to the
- * locomotion engine, the sfx mute flag, panel scale, etc.).
+ * everywhere, alive for the whole tab session, with a hand-rolled emitter so a
+ * system can react (and re-apply) when a setting changes.
  *
- * WHY THIS EXISTS
- *   A classroom VR deployment for 5th graders needs comfort controls the teacher
- *   (or the student) can reach without editing code: teleport vs. smooth-slide
- *   movement, snap vs. smooth turning, an audio mute, a narration toggle, and a
- *   readable-text size. These live here so every system reads one source of
- *   truth, and the choices PERSIST across a page reload (localStorage) — a kid
- *   who gets motion-sick and switches to teleport shouldn't have to redo it if
- *   the tab reloads mid-lesson.
+ * WHAT USES IT NOW
+ *   The in-VR Settings panel was removed, so nothing currently WRITES these at
+ *   runtime — but the singleton is still the single source of truth for the
+ *   sensible DEFAULTS that other systems READ: the narrator honors `narration`
+ *   and `textSize`, and the ambient audio bed honors `muted`. The setters +
+ *   localStorage persistence are kept intact so a settings UI (or a teacher
+ *   toggle) can be re-attached later without touching the readers.
  */
 
 /** How the player moves in XR. Teleport is the comfort default (no vection). */

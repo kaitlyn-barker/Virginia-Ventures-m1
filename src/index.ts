@@ -81,10 +81,6 @@ import { NpcPromptSystem } from "./systems/NpcPromptSystem.js";
 // Desktop-only view turning: ← → (and Q/E) yaw the player so a mouse-and-
 // keyboard player can look around. XR uses the headset/thumbstick instead.
 import { DesktopLookSystem } from "./systems/DesktopLookSystem.js";
-// In-VR Comfort & Settings panel (P1 accessibility): teleport/free movement,
-// snap/smooth turning, audio mute, narrator toggle, text size. Opened from the
-// "Settings" tab on the season banner; applies choices live to LocomotionSystem.
-import { SettingsSystem } from "./systems/SettingsSystem.js";
 // Plain-words tradeoff callouts (P2.4): a slim "Advisor" banner under the score
 // HUD that names the cost of each big decision. Driven by the narrator emitter.
 import { NarratorSystem } from "./systems/NarratorSystem.js";
@@ -384,11 +380,6 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // SeasonBannerSystem updates + animates the on-screen season banner.
   world.registerSystem(PhaseSystem);
   world.registerSystem(SeasonBannerSystem);
-
-  // Comfort & Settings panel. Registered after SeasonBannerSystem so both can
-  // wire the shared banner document (this one owns the "Settings" tab). It reads
-  // the LocomotionSystem the world already registered and flips it live.
-  world.registerSystem(SettingsSystem);
 
   // The persistent season selector banner. ScreenSpace pins it to the bottom-
   // center of the screen in the browser (and to a world-space HUD in XR), so it

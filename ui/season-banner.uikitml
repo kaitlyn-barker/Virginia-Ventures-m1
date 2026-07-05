@@ -30,24 +30,6 @@
     text-align: center;
     cursor: pointer;
   }
-
-  /* The comfort/settings opener — a fixed-purpose tab set off from the seasons
-     by a wider left margin. SettingsSystem (not SeasonBannerSystem) wires this,
-     so it keeps its own steady styling and is never recolored per-season. */
-  .settings-tab {
-    padding-top: 0.8;
-    padding-bottom: 0.8;
-    padding-left: 1.3;
-    padding-right: 1.3;
-    margin-left: 1.6;
-    border-radius: 1.2;
-    background-color: #4a3a2a;
-    color: #ecdcb6;
-    font-size: 1.9;
-    font-weight: medium;
-    text-align: center;
-    cursor: pointer;
-  }
 </style>
 <div id="banner-root" class="bar">
   <button id="season-Arrival" class="tab">Arrival</button>
@@ -55,5 +37,4 @@
   <button id="season-Summer" class="tab">Summer</button>
   <button id="season-Fall" class="tab">Fall</button>
   <button id="season-Winter" class="tab">Winter</button>
-  <button id="settings-open" class="settings-tab">Settings</button>
 </div>
