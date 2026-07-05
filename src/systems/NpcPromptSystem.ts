@@ -64,6 +64,7 @@ const NPC_VERBS: Record<string, 'talk' | 'trade' | 'both'> = {
   Martha: 'trade', // Summer market herbalist
   James: 'trade', // Summer market blacksmith
   Anne: 'trade', // Summer market general trader
+  Henry: 'trade', // Summer market cooper (finished-goods-only, wants-mismatch)
   'Captain Whitmore': 'talk', // (script-driven in Fall — see header note)
   Smuggler: 'talk', // (script-driven in Fall — see header note)
 };

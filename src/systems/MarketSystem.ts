@@ -66,8 +66,9 @@ export const TradeStall = createComponent('TradeStall', {
   trader: { type: Types.String, default: '' },
 });
 
-/** The three traders. */
-type TraderId = 'Martha' | 'James' | 'Anne';
+/** The market traders. Henry (the cooper) creates the wants-mismatch: he trades
+ *  only for finished goods, not crops (see the double-coincidence note below). */
+type TraderId = 'Martha' | 'James' | 'Anne' | 'Henry';
 
 /** The goods the PLAYER can offer (their tradeable inventory). */
 export type GiveGood = 'corn' | 'tobacco' | 'trade_goods';
@@ -93,6 +94,13 @@ export interface TraderDef {
    *    (Elizabeth takes corn OR tobacco).
    */
   mode?: 'and' | 'or';
+  /**
+   * In-character haggling lines (P1.2 barter depth). When the player proposes an
+   * under-payment that is still within the trader's hidden acceptable range, the
+   * trader pushes back once (`counter`) and, if the player holds firm, caves and
+   * accepts the discount (`cave`). Falls back to a generic voice if omitted.
+   */
+  haggleVoice?: { counter: string; cave: string };
 }
 
 /** UI-only icon initial per good (for the colored-circle item icons). */
@@ -137,10 +145,22 @@ export const GOOD_NAMES: Record<string, string> = {
 };
 
 /**
- * The trader catalogue. Prices follow the brief exactly:
+ * The trader catalogue. Prices follow the brief:
  *   Martha: 3 corn = 1 herb bundle, 5 corn = 1 blanket set.
  *   James : 2 tobacco = 1 tool set, 1 tobacco = 1 timber bundle.
- *   Anne  : 2 corn + 2 tobacco = 1 of any item.
+ *   Anne  : 2 corn + 2 tobacco = 1 item (now including English "trade goods").
+ *   Henry : the cooper — trades ONLY for trade goods (the wants-mismatch, below).
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * THE DOUBLE-COINCIDENCE OF WANTS (P1.2)
+ * ─────────────────────────────────────────────────────────────────────────
+ * Barter only works when each side wants what the other has. Henry the cooper
+ * has no use for the player's crops — he wants finished "trade goods," which the
+ * player starts with NONE of. So to buy Henry's timber/iron bands, the player
+ * must first trade crops to Anne for trade goods, THEN trade those to Henry: a
+ * two-step chain. That friction is the strongest setup for the assessment
+ * question "would you have preferred money?" — we log it when the player meets a
+ * trader whose wants they can't currently satisfy.
  */
 const TRADERS: Record<TraderId, TraderDef> = {
   Martha: {
@@ -152,6 +172,11 @@ const TRADERS: Record<TraderId, TraderDef> = {
       { item: 'herbs', price: { corn: 3 } },
       { item: 'blankets', price: { corn: 5 } },
     ],
+    haggleVoice: {
+      counter:
+        "Herbs don't grow themselves, dear — that's a little light. Add to it, or hold firm and we'll talk.",
+      cave: 'Oh, alright. You have a kind face — we have a deal.',
+    },
   },
   James: {
     greeting:
@@ -162,20 +187,59 @@ const TRADERS: Record<TraderId, TraderDef> = {
       { item: 'iron_tools', price: { tobacco: 2 } },
       { item: 'timber', price: { tobacco: 1 } },
     ],
+    haggleVoice: {
+      counter:
+        'Two for a tool? My children eat too, friend. Sweeten it — or stand firm and we shall see.',
+      cave: "Hah! You've the makings of a trader. Done — we shake on it.",
+    },
   },
   Anne: {
     greeting:
-      'I have a little of everything, but quality comes at a price, friend.',
+      'I have a little of everything, even fine goods off the English ships, but quality comes at a price, friend.',
     wants: ['corn', 'tobacco'],
-    stock: { herbs: 3, blankets: 3, iron_tools: 3, timber: 3 },
+    stock: { herbs: 3, blankets: 3, iron_tools: 3, trade_goods: 5 },
     offers: [
       { item: 'herbs', price: { corn: 2, tobacco: 2 } },
       { item: 'blankets', price: { corn: 2, tobacco: 2 } },
       { item: 'iron_tools', price: { corn: 2, tobacco: 2 } },
-      { item: 'timber', price: { corn: 2, tobacco: 2 } },
+      // English finished goods — the ONLY market source of "trade goods," the
+      // currency Henry the cooper insists on (the two-step chain, above).
+      { item: 'trade_goods', price: { corn: 2, tobacco: 2 } },
     ],
+    haggleVoice: {
+      counter:
+        'Quality costs, friend — that offer is thin. Round it up, or hold your ground and we shall see.',
+      cave: 'A shrewd bargainer! Very well — the goods are yours.',
+    },
+  },
+  Henry: {
+    greeting:
+      "I'm the cooper — I make the colony's barrels and hoops. I've no use for corn or tobacco, friend; I trade only for finished goods off the English ships. Bring me trade goods and we'll deal.",
+    wants: ['trade_goods'],
+    stock: { timber: 4, iron_tools: 2 },
+    offers: [
+      { item: 'timber', price: { trade_goods: 1 } },
+      { item: 'iron_tools', price: { trade_goods: 2 } },
+    ],
+    haggleVoice: {
+      counter:
+        "That's light for good English wares. Add to it — or hold firm and we'll see who blinks.",
+      cave: "Hah — you've a cooper's stubbornness. Very well, we have a deal.",
+    },
   },
 };
+
+/** Generic haggling voice for any trader that doesn't define its own. */
+const DEFAULT_HAGGLE = {
+  counter:
+    "Hmm — that's below my price, friend, and I've mouths to feed. Sweeten it, or stand firm and we'll talk.",
+  cave: 'You drive a hard bargain... aye, we have a deal.',
+};
+
+/** Lowest fraction of the list price a trader will accept after haggling. */
+const HAGGLE_FLOOR_RATIO = 0.6;
+/** Most haggle rounds per standing offer: round 1 pushes back, round 2 caves. */
+const MAX_HAGGLE_ROUNDS = 2;
 
 const TRADE_PANEL = './ui/trade-interface.json';
 const PROMPT_PANEL = './ui/trade-prompt.json';
@@ -223,6 +287,15 @@ export class MarketSystem extends createSystem({
   private give: Record<GiveGood, number> = { corn: 0, tobacco: 0, trade_goods: 0 };
   private receive: Record<string, number> = {};
 
+  /**
+   * Haggling state for the CURRENT standing offer (P1.2). Counts how many times
+   * the player has proposed the same under-payment: round 1 draws a counter,
+   * round 2 (holding firm) makes the trader cave to the discount. Resets whenever
+   * the basket changes, a trade completes, or a new trader opens — so each
+   * negotiation is self-contained.
+   */
+  private haggleRound = 0;
+
   /** Cached panel docs + entities (single handles, not entity collections). */
   private tradeDoc?: UIKitDocument;
   private tradeEntity?: Entity;
@@ -250,6 +323,7 @@ export class MarketSystem extends createSystem({
       Martha: { ...TRADERS.Martha.stock },
       James: { ...TRADERS.James.stock },
       Anne: { ...TRADERS.Anne.stock },
+      Henry: { ...TRADERS.Henry.stock },
     };
 
     // ── Create the two world-space panels (hidden until needed) ─────────────
@@ -441,6 +515,19 @@ export class MarketSystem extends createSystem({
     this.active = { id, def, entity, onClose: opts?.onClose };
     this.give = { corn: 0, tobacco: 0, trade_goods: 0 };
     this.receive = {};
+    this.haggleRound = 0;
+
+    // Double-coincidence-of-wants (P1.2): if the player holds NONE of what this
+    // trader wants, barter is stuck — they must first trade elsewhere to get it.
+    // Log that friction explicitly (it's the "would money be easier?" moment)
+    // each time they meet such a trader empty-handed.
+    const canPayAny = def.wants.some((c) => playerInventory.getItemCount(c) > 0);
+    if (!canPayAny && def.offers.length > 0) {
+      const wantNames = def.wants.map((c) => GOOD_NAMES[c] ?? c).join(' or ');
+      gameState.logDecision(
+        `[Trade] Wants-mismatch at ${id}: they trade only for ${wantNames}, which you don't have. You must trade elsewhere first (barter's double-coincidence problem).`,
+      );
+    }
 
     // Visiting a trade location (opening its panel) counts toward the recap.
     // This same path serves the neighbor farms (FarmVisitSystem routes through
@@ -552,6 +639,9 @@ export class MarketSystem extends createSystem({
     if (!this.active) return;
     const owned = playerInventory.getItemCount(g);
     this.give[g] = (this.give[g] + 1) % (owned + 1);
+    // Changing the offer restarts the negotiation — "holding firm" means
+    // proposing the SAME offer again, so any edit resets the haggle counter.
+    this.haggleRound = 0;
     this.setText('npc-response', '');
     this.refresh();
   }
@@ -564,6 +654,8 @@ export class MarketSystem extends createSystem({
     const item = offers[slot].item;
     const inStock = this.stock[this.active.id][item] ?? 0;
     this.receive[item] = ((this.receive[item] ?? 0) + 1) % (inStock + 1);
+    // A different basket is a different deal — reset the haggle counter.
+    this.haggleRound = 0;
     this.setText('npc-response', '');
     this.refresh();
   }
@@ -635,6 +727,57 @@ export class MarketSystem extends createSystem({
     return 'fair';
   }
 
+  /**
+   * How much of the list price the current offer covers, as a ratio (1.0 = the
+   * exact list price). Used ONLY to decide whether an under-payment is close
+   * enough to haggle over. Mirrors computeFairness's two modes:
+   *  - 'or': the summed coverage across currencies (any/mix pays).
+   *  - 'and': the WEAKEST covered currency caps the ratio (you must cover each),
+   *    so paying all corn and no tobacco reads as 0 — genuinely far from a deal.
+   */
+  private coverageRatio(): number {
+    if (!this.active) return 0;
+    const def = this.active.def;
+
+    if (def.mode === 'or') {
+      const costAllIn: Partial<Record<GiveGood, number>> = {};
+      for (const [item, qty] of Object.entries(this.receive)) {
+        if (qty <= 0) continue;
+        const offer = def.offers.find((o) => o.item === item);
+        if (!offer) continue;
+        for (const c of def.wants) {
+          const unit = offer.price[c] ?? 0;
+          if (unit > 0) costAllIn[c] = (costAllIn[c] ?? 0) + unit * qty;
+        }
+      }
+      let coverage = 0;
+      for (const c of def.wants) {
+        const full = costAllIn[c] ?? 0;
+        if (full > 0) coverage += this.give[c] / full;
+      }
+      return coverage;
+    }
+
+    // 'and': ratio per wanted currency; the smallest governs (must cover all).
+    const cost: Partial<Record<GiveGood, number>> = {};
+    for (const [item, qty] of Object.entries(this.receive)) {
+      if (qty <= 0) continue;
+      const offer = def.offers.find((o) => o.item === item);
+      if (!offer) continue;
+      for (const c of def.wants) {
+        const unit = offer.price[c] ?? 0;
+        cost[c] = (cost[c] ?? 0) + unit * qty;
+      }
+    }
+    let ratio = Infinity;
+    for (const c of def.wants) {
+      const need = cost[c] ?? 0;
+      if (need <= 0) continue;
+      ratio = Math.min(ratio, this.give[c] / need);
+    }
+    return ratio === Infinity ? 0 : ratio;
+  }
+
   private onPropose(): void {
     if (!this.active) return;
     const result = this.computeFairness();
@@ -645,11 +788,7 @@ export class MarketSystem extends createSystem({
       return;
     }
     if (result === 'under') {
-      this.setText(
-        'npc-response',
-        'I appreciate the offer, but I need more for that.',
-      );
-      sfx.error();
+      this.handleHaggle();
       return;
     }
     if (result === 'fair') {
@@ -661,9 +800,56 @@ export class MarketSystem extends createSystem({
     this.executeTrade(result);
   }
 
+  /**
+   * The negotiation (P1.2). An under-payment isn't a flat "no" anymore: if it's
+   * within the trader's hidden floor (≥ HAGGLE_FLOOR_RATIO of list), the trader
+   * counters once; if the player proposes the same offer again (holds firm), the
+   * trader caves and accepts the discount. Below the floor — or out of rounds —
+   * it's a genuine refusal. Every step is logged so the export shows the
+   * back-and-forth, not just the outcome.
+   */
+  private handleHaggle(): void {
+    if (!this.active) return;
+    const { id, def } = this.active;
+    const ratio = this.coverageRatio();
+    const voice = def.haggleVoice ?? DEFAULT_HAGGLE;
+
+    // Too far below the price, or the haggle is exhausted — a real refusal.
+    if (ratio < HAGGLE_FLOOR_RATIO || this.haggleRound >= MAX_HAGGLE_ROUNDS) {
+      this.setText(
+        'npc-response',
+        'I appreciate the offer, but I truly cannot go that low.',
+      );
+      sfx.error();
+      return;
+    }
+
+    this.haggleRound += 1;
+
+    if (this.haggleRound < MAX_HAGGLE_ROUNDS) {
+      // Round 1: push back in character and invite the player to hold firm.
+      this.setText('npc-response', voice.counter);
+      sfx.error();
+      gameState.logDecision(
+        `[Trade] ${id}: player offered ${this.formatBasket(
+          GIVE_GOODS.map((g) => [g, this.give[g]] as [string, number]),
+        )} (below asking); ${id} countered.`,
+      );
+      return;
+    }
+
+    // Final round: the player held firm within the floor — the trader caves.
+    this.setText('npc-response', voice.cave);
+    sfx.coin();
+    gameState.logDecision(
+      `[Trade] ${id}: player held firm; ${id} accepted a bargain below the asking price.`,
+    );
+    this.executeTrade('fair', /* haggled */ true);
+  }
+
   // ──────────────────────────────── execution ────────────────────────────────
 
-  private executeTrade(kind: 'fair' | 'over'): void {
+  private executeTrade(kind: 'fair' | 'over', haggled = false): void {
     if (!this.active) return;
     const id = this.active.id;
     const stock = this.stock[id];
@@ -694,8 +880,9 @@ export class MarketSystem extends createSystem({
     }
 
     // Score: fair trades build wealth; overpaying costs a little (you still get
-    // the goods). Meeting a settlement need rewards Food Supply.
-    if (kind === 'fair') colonyScore.addWealth(3);
+    // the goods). A haggled discount is the shrewdest deal — a small extra Wealth
+    // reward makes smart bargaining legible. Meeting a need rewards Food Supply.
+    if (kind === 'fair') colonyScore.addWealth(haggled ? 4 : 3);
     else colonyScore.addWealth(-2);
     if (needsMet > 0) colonyScore.addFood(5 * needsMet);
 
@@ -704,8 +891,9 @@ export class MarketSystem extends createSystem({
       GIVE_GOODS.map((g) => [g, this.give[g]] as [string, number]),
     );
     const receiveStr = this.formatBasket(Object.entries(this.receive));
+    const tag = haggled ? 'bargain' : kind;
     gameState.logDecision(
-      `[Trade] ${id}: gave ${giveStr} for ${receiveStr} (${kind}${needsMet > 0 ? `, met ${needsMet} need${needsMet > 1 ? 's' : ''}` : ''})`,
+      `[Trade] ${id}: gave ${giveStr} for ${receiveStr} (${tag}${needsMet > 0 ? `, met ${needsMet} need${needsMet > 1 ? 's' : ''}` : ''})`,
     );
 
     // Tally the trade for the Summer recap.
@@ -722,6 +910,7 @@ export class MarketSystem extends createSystem({
     // Reset the proposal; refresh the (now changed) counts. Panel stays open.
     this.give = { corn: 0, tobacco: 0, trade_goods: 0 };
     this.receive = {};
+    this.haggleRound = 0;
     this.refresh();
   }
 

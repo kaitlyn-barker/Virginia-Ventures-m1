@@ -449,6 +449,23 @@ function makeTrowel(): Group {
   return g;
 }
 
+/** Henry the cooper — a small barrel: a stout wooden cylinder with two darker
+ *  iron hoops. Held low at the side like a finished piece of his work. */
+function makeBarrel(): Group {
+  const g = new Group();
+  const h = 0.22;
+  const body = part(new CylinderGeometry(0.11, 0.11, h, 14), PROP.brown);
+  body.position.y = h / 2;
+  g.add(body);
+  // Two iron hoops (thin darker rings near the top and bottom of the staves).
+  for (const hy of [0.05, h - 0.05]) {
+    const hoop = part(new CylinderGeometry(0.115, 0.115, 0.025, 14), PROP.gray);
+    hoop.position.y = hy;
+    g.add(hoop);
+  }
+  return g;
+}
+
 /** Smuggler — pouch/sack: a squished dark-brown sphere with a tied neck. */
 function makePouch(): Group {
   const g = new Group();
@@ -560,6 +577,27 @@ export function buildColonists(world: World): void {
     }),
     1.9,
     -1.2,
+    { face: 'center' },
+  );
+
+  // ── HENRY — the cooper (barrel-maker) at the market edge. Leather apron +
+  //    cap, a finished barrel at his side. He trades only for finished "trade
+  //    goods," never crops — the deliberate wants-mismatch (see MarketSystem). ─
+  placeNpc(
+    world,
+    makeColonist({
+      name: 'Henry',
+      skin: SKIN.medium,
+      shirt: C.fadedBrown,
+      legs: C.warmBrown,
+      apron: C.darkLeather,
+      belt: C.darkLeather,
+      hair: HAIR.brown,
+      hat: { type: 'cap', color: C.fadedBrown },
+      prop: { build: makeBarrel, hand: 'left', pos: [-0.05, -0.2, 0.06] },
+    }),
+    4.0,
+    -0.6,
     { face: 'center' },
   );
 

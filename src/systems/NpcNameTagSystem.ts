@@ -63,6 +63,7 @@ const NPCS: Record<string, { role: string; verb: 'talk' | 'trade' | 'both' }> = 
   Martha: { role: 'Herbalist', verb: 'trade' },
   James: { role: 'Blacksmith', verb: 'trade' },
   Anne: { role: 'Trader', verb: 'trade' },
+  Henry: { role: 'Cooper', verb: 'trade' },
   'Captain Whitmore': { role: 'Royal Captain', verb: 'talk' },
   Smuggler: { role: 'Smuggler', verb: 'talk' },
 };
