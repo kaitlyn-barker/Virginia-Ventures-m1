@@ -1,8 +1,6 @@
 import { AssetManifest, SessionMode, World } from "@iwsdk/core";
 
 import { RayInteractable, PanelUI, ScreenSpace, Follower } from "@iwsdk/core";
-// TEMP click-diagnostic imports (remove with the [VVPICK] block below).
-import { Raycaster, Vector2, Vector3, Box3, PanelDocument } from "@iwsdk/core";
 
 import { PanelSystem } from "./panel.js";
 
@@ -455,84 +453,5 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // force a re-layout against the settled natural sizes.
   for (const ms of [250, 750, 1500]) {
     setTimeout(() => window.dispatchEvent(new Event("resize")), ms);
-  }
-
-  // ── TEMP click diagnostic ([VVPICK]) — logs what the app's OWN screen-space
-  //    pick finds under each real click, so we can see whether a click on the
-  //    decree Continue actually hits the button on the player's viewport. Remove
-  //    once the click issue is diagnosed. Harmless: it only reads + logs. ──────
-  {
-    // TEMP: console shortcut so testing doesn't require replaying to Fall each
-    // time — run `__toFall()` in the console, wait ~12s for the decree.
-    (window as unknown as Record<string, unknown>).__toFall = () => {
-      gameState.unlockThrough("Fall");
-      gameState.setPhase("Fall");
-    };
-    const canvas = document.querySelector("canvas");
-    const rc = new Raycaster();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scene = world.scene as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const PU = PanelUI as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const PD = PanelDocument as any;
-    canvas?.addEventListener(
-      "pointerdown",
-      (e) => {
-        for (let i = 0; i < 400; i++) {
-          const cfg = PU.data?.config?.[i];
-          const doc = PD.data?.document?.[i];
-          if (cfg && doc) doc.name = String(cfg);
-        }
-        const rect = canvas.getBoundingClientRect();
-        const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-        rc.setFromCamera(new Vector2(nx, ny), world.camera);
-        const arr = (scene.screenSpaceDescendants ?? []) as object[];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const hits = rc.intersectObjects(arr as any[], true);
-        const names: string[] = [];
-        for (const h of hits) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let o: any = h.object;
-          let nm = "";
-          while (o) {
-            if (typeof o.name === "string" && o.name.includes(".json")) { nm = o.name; break; }
-            o = o.parent;
-          }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let c: any = h.object;
-          let vis = "?";
-          while (c) {
-            if (c.isVisible && typeof c.isVisible.value === "boolean") { vis = String(c.isVisible.value); break; }
-            c = c.parent;
-          }
-          names.push(`${nm || "?"}(vis=${vis})`);
-          if (names.length >= 3) break;
-        }
-        // Did the click hit the Continue BUTTON specifically, and where does the
-        // button actually project on screen (vs where you clicked)?
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let ddoc: any = null;
-        for (let i = 0; i < 400; i++) {
-          if (PU.data?.config?.[i] === "./ui/royal-decree.json") { ddoc = PD.data?.document?.[i]; break; }
-        }
-        const btn = ddoc?.getElementById?.("decree-continue");
-        let hitBtn = false;
-        for (const h of hits) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let o: any = h.object;
-          while (o) { if (o === btn) { hitBtn = true; break; } o = o.parent; }
-          if (hitBtn) break;
-        }
-        let btnNdc = "n/a";
-        if (btn) {
-          const bc = new Box3().setFromObject(btn).getCenter(new Vector3()).project(world.camera);
-          btnNdc = `${bc.x.toFixed(2)},${bc.y.toFixed(2)}`;
-        }
-        console.log(`[VVPICK] click ndc=${nx.toFixed(2)},${ny.toFixed(2)} canvas=${rect.width | 0}x${rect.height | 0} hitContinueBtn=${hitBtn} btnNDC=${btnNdc} → ${names.join(" | ") || "NO HIT"}`);
-      },
-      true,
-    );
   }
 });

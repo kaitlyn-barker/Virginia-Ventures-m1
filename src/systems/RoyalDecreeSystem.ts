@@ -151,17 +151,6 @@ export class RoyalDecreeSystem extends createSystem({
   }
 
   update(delta: number) {
-    // Keep the revealed Continue button click-through every frame it's on screen.
-    // It was faded in from opacity 0, and while it sat at opacity 0 UIKit treated
-    // it as not-visible and forced its pointerEvents to 'none' — fading back up
-    // does NOT restore that, and re-enabling it in the reveal tick doesn't stick
-    // (isVisible is still propagating). Re-asserting every frame the decree is up
-    // is cheap (a no-op once it's already 'auto') and reliably fixes the
-    // "Continue renders but ignores clicks" bug. Keyboard (below) is the backup.
-    if (this.finaleShown && this.panelEntity?.object3D?.visible) {
-      this.button('decree-continue')?.setProperties({ pointerEvents: 'auto' });
-    }
-
     // Keyboard path to advance the decree once the Continue button is revealed.
     // It never depends on the pointer hit-testing the on-screen button, so it
     // still works if a viewport quirk makes that button hard to click.
