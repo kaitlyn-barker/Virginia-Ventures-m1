@@ -7,6 +7,19 @@
       "runtimeArgs": ["run", "dev:runtime", "--", "--port", "8099", "--strictPort"],
       "port": 8099,
       "autoPort": false
+    },
+    {
+      "name": "vv-pages-sim",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8123",
+        "--directory",
+        ".claude/pages-sim"
+      ],
+      "port": 8123,
+      "autoPort": false
     }
   ]
 }

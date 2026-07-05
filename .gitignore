@@ -65,3 +65,4 @@ coverage/
 public/gltf/generated/
 public/glxf/
 public/ui/
+.claude/pages-sim/
