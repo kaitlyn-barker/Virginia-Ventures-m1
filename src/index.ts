@@ -430,6 +430,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // Confirm the shared game state initializes in the 'Arrival' phase. Because
   // GameState is a module-level singleton, importing it above already ran its
   // initializer — currentPhase is 'Arrival' before this line executes.
+  // ── Production introspection handle ──────────────────────────────────────
+  // One deliberately-shipped global: after six debugging sessions chasing an
+  // environment-specific dead-pointer state that only manifests in the
+  // player's own browser, live introspection of the deployed app is worth one
+  // window property. Read-only usage; no gameplay depends on it.
+  (window as unknown as Record<string, unknown>).__vv = { world, gameState };
+
   // ── DEV-only diagnostics ────────────────────────────────────────────────
   // Phase logger + window singletons for console-driven verification. Gated on
   // import.meta.env.DEV so production ships clean: no console spam, and no
