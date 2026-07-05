@@ -312,7 +312,7 @@ export class ObjectiveTrackerSystem extends createSystem({
   /** The "just completed" flourish: a soft ding + a brief circle pulse. */
   private celebrate(i: number): void {
     // Soft "ding" — fire-and-forget, non-positional (reuse the existing chime).
-    AudioUtils.createOneShot(this.world, '/audio/chime.mp3', {
+    AudioUtils.createOneShot(this.world, './audio/chime.mp3', {
       volume: 0.5,
       positional: false,
     });

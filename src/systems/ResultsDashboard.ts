@@ -192,7 +192,7 @@ export class ResultsDashboard extends createSystem({
    */
   private playAppearSound(): void {
     try {
-      AudioUtils.createOneShot(this.world, '/audio/dashboard_appear.mp3', {
+      AudioUtils.createOneShot(this.world, './audio/dashboard_appear.mp3', {
         volume: 0.5,
         positional: false,
       });

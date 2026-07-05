@@ -323,7 +323,7 @@ export class WinterScene extends createSystem({
    */
   private playWinterWind(): void {
     try {
-      AudioUtils.createOneShot(this.world, '/audio/winter_wind.mp3', {
+      AudioUtils.createOneShot(this.world, './audio/winter_wind.mp3', {
         volume: 0.4,
         positional: false, // ambient bed, not tied to a spot in the world
       });

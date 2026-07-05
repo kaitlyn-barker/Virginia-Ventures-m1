@@ -409,7 +409,7 @@ export class NeedsSystem extends createSystem({
 
   /** Play the confirmation chime as a fire-and-forget, non-positional sound. */
   private playCheckSound(): void {
-    AudioUtils.createOneShot(this.world, '/audio/chime.mp3', {
+    AudioUtils.createOneShot(this.world, './audio/chime.mp3', {
       volume: 0.6,
       positional: false,
     });

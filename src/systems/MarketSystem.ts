@@ -902,7 +902,7 @@ export class MarketSystem extends createSystem({
     // Celebrate: flash the "Trade Complete!" banner + a coin chime.
     this.container('trade-banner')?.setProperties({ display: 'flex' });
     this.bannerLeft = 2.0;
-    AudioUtils.createOneShot(this.world, '/audio/chime.mp3', {
+    AudioUtils.createOneShot(this.world, './audio/chime.mp3', {
       volume: 0.6,
       positional: false,
     });

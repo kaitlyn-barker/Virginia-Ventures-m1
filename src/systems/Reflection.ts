@@ -317,7 +317,7 @@ export class Reflection extends createSystem({
    */
   private playCompleteSound(): void {
     try {
-      AudioUtils.createOneShot(this.world, '/audio/reflection_complete.mp3', {
+      AudioUtils.createOneShot(this.world, './audio/reflection_complete.mp3', {
         volume: 0.5,
         positional: false,
       });
