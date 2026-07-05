@@ -79,9 +79,12 @@ export class PointerRefreshSystem extends createSystem({}) {
   }
 
   update(delta: number) {
-    // Canvas pointer forwarding is inert inside an immersive session, and a
-    // hidden tab has no cursor to keep honest.
-    if (this.renderer.xr.isPresenting || document.hidden) return;
+    // Canvas pointer forwarding is inert inside an immersive session. Note:
+    // deliberately NO document.hidden gate — macOS Chrome reports occluded
+    // (but still rendering) windows as hidden, which silently disabled the
+    // refresher; if update() is running at all, the loop is alive and the
+    // ~7 events/sec are harmless.
+    if (this.renderer.xr.isPresenting) return;
     if (!this.inside || this.buttonHeld) return;
 
     this.idleClock += delta;
