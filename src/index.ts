@@ -121,6 +121,11 @@ import { hudFollow } from "./ui/hudFollow.js";
 // content settles (needs the live World; registered once below).
 import { initRelayout } from "./ui-relayout.js";
 
+// P2.5 robustness: fetch every ./ui/*.json panel config (with retry) before we
+// build the scene, so a transient/missing config surfaces a friendly refresh
+// prompt instead of silently killing a whole phase.
+import { preflightPanels } from "./ui/panelPreflight.js";
+
 // No external assets are needed yet — the settlement is built entirely from
 // Three.js primitives. Real building/prop GLBs will be added to this manifest
 // later when they exist in public/gltf/. The welcome panel loads its UI config
@@ -161,8 +166,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     sceneUnderstanding: false,
     environmentRaycast: false,
   },
-}).then((world) => {
+}).then(async (world) => {
   const { camera } = world;
+
+  // P2.5: confirm every panel config is reachable (with retry) BEFORE building
+  // the scene, so the SDK's own one-shot fetch a moment later hits a warm cache.
+  // A genuinely missing config shows a friendly refresh overlay rather than a
+  // silently dead phase. Never throws — worst case it returns the missing list.
+  await preflightPanels();
 
   // Give the screen-space relayout helper a handle to the live world so panels
   // (e.g. the Summer "Done Trading" HUD) can re-fit once their content settles.
