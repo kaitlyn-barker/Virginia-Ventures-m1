@@ -2,7 +2,7 @@ import { AssetManifest, SessionMode, World } from "@iwsdk/core";
 
 import { RayInteractable, PanelUI, ScreenSpace, Follower } from "@iwsdk/core";
 // TEMP click-diagnostic imports (remove with the [VVPICK] block below).
-import { Raycaster, Vector2, PanelDocument } from "@iwsdk/core";
+import { Raycaster, Vector2, Vector3, Box3, PanelDocument } from "@iwsdk/core";
 
 import { PanelSystem } from "./panel.js";
 
@@ -504,7 +504,27 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
           names.push(`${nm || "?"}(vis=${vis})`);
           if (names.length >= 3) break;
         }
-        console.log(`[VVPICK] click ndc=${nx.toFixed(2)},${ny.toFixed(2)} canvas=${rect.width | 0}x${rect.height | 0} → ${names.join(" | ") || "NO HIT"}`);
+        // Did the click hit the Continue BUTTON specifically, and where does the
+        // button actually project on screen (vs where you clicked)?
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let ddoc: any = null;
+        for (let i = 0; i < 400; i++) {
+          if (PU.data?.config?.[i] === "./ui/royal-decree.json") { ddoc = PD.data?.document?.[i]; break; }
+        }
+        const btn = ddoc?.getElementById?.("decree-continue");
+        let hitBtn = false;
+        for (const h of hits) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let o: any = h.object;
+          while (o) { if (o === btn) { hitBtn = true; break; } o = o.parent; }
+          if (hitBtn) break;
+        }
+        let btnNdc = "n/a";
+        if (btn) {
+          const bc = new Box3().setFromObject(btn).getCenter(new Vector3()).project(world.camera);
+          btnNdc = `${bc.x.toFixed(2)},${bc.y.toFixed(2)}`;
+        }
+        console.log(`[VVPICK] click ndc=${nx.toFixed(2)},${ny.toFixed(2)} canvas=${rect.width | 0}x${rect.height | 0} hitContinueBtn=${hitBtn} btnNDC=${btnNdc} → ${names.join(" | ") || "NO HIT"}`);
       },
       true,
     );
