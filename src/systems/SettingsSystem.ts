@@ -43,6 +43,7 @@ import {
 } from '@iwsdk/core';
 
 import { gameSettings } from '../game/GameSettings.js';
+import { gameState } from '../game/GameState.js';
 import { SeasonBanner } from './SeasonBannerSystem.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
 import { hudFollow } from '../ui/hudFollow.js';
@@ -99,9 +100,13 @@ export class SettingsSystem extends createSystem({
         left: '30vw',
         width: '40vw',
         height: '80%',
-        // Front-most interactive layer (matches the decree/dialog modals) so its
-        // option buttons win the pointer over any same-depth HUD panel behind it.
-        zOffset: 0.18,
+        // Sit at 0.19 — in front of the HUDs (0.26) and default popups (0.2) so
+        // its buttons win the pointer when open, but a hair BEHIND the Royal
+        // Decree's Continue (0.18). This centered panel overlaps the decree's
+        // region, and even while hidden it must never tie the decree at 0.18 and
+        // risk stealing its click; keeping the decree the sole owner of 0.18
+        // restores the pre-Settings behavior.
+        zOffset: 0.19,
       })
       // XR: keep the card in front of the headset (no-op on desktop ScreenSpace).
       .addComponent(Follower, hudFollow(this.world.player.head, [0, 0, -1.4]));
@@ -143,6 +148,16 @@ export class SettingsSystem extends createSystem({
       this.world.visibilityState.subscribe((state) => {
         this.immersive = state !== VisibilityState.NonImmersive;
         this.applyLocomotion();
+      }),
+    );
+
+    // Auto-close on any phase change: a settings panel left open would otherwise
+    // linger (centered) over the next scene — including modals like the Royal
+    // Decree — and could compete for the pointer. Closing it here keeps the
+    // decree/dialog the sole interactive layer at its depth.
+    this.cleanupFuncs.push(
+      gameState.onPhaseChanged(() => {
+        if (this.open) this.setVisible(false);
       }),
     );
 
