@@ -48,6 +48,7 @@ import { playerInventory } from '../game/PlayerInventory.js';
 import { fallSequence } from '../game/FallSequence.js';
 import { fallProgress } from '../game/FallProgress.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
+import { narrator } from '../game/Narrator.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
 import { sfx } from '../audio/Sfx.js';
 import { CAPTAIN_SPOT, CAPTAIN_GANGPLANK_TOP } from './TradeShipArrival.js';
@@ -300,6 +301,10 @@ export class SmugglingChoice extends createSystem({
     fallProgress.recordSmuggling('refused', 0);
     gameState.logDecision('[Fall] Player refused smuggling - stayed loyal to the Crown');
     console.log('Player refused smuggling — stayed loyal to the Crown');
+    narrator.say(
+      'You obeyed the Crown and turned the smuggler away. The King trusts your colony more — but you passed up the Dutch silver that could have grown your wealth.',
+      'crown',
+    );
     this.showOutcome(LINE_REFUSE);
   }
 
@@ -344,6 +349,16 @@ export class SmugglingChoice extends createSystem({
       `[Fall] Player chose to smuggle tobacco - ${tag} (sold ${n} to the Dutch for ${n * DUTCH_PRICE} gold, no tax).`,
     );
     console.log(`Player chose to smuggle tobacco — ${tag}`);
+
+    // Tradeoff callout (P2.4): name the wealth-vs-Crown cost in plain words.
+    if (n > 0) {
+      narrator.say(
+        discovered
+          ? 'You sold to the Dutch for more gold — but the Crown found out. Defying the King cost your colony dearly in his eyes.'
+          : 'You sold to the Dutch for more gold and got away with it. Your wealth grew — but breaking the Crown\'s rules lowered the King\'s trust in your colony.',
+        'crown',
+      );
+    }
 
     // Back to the smuggler card for the outcome line.
     this.setVisible(this.dutchEntity, this.dutchDoc, 'dutch-root', false);

@@ -56,6 +56,7 @@ import { colonyScore } from '../game/ColonyScore.js';
 import { playerInventory } from '../game/PlayerInventory.js';
 import { springProgress } from '../game/SpringProgress.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
+import { narrator } from '../game/Narrator.js';
 import { FarmCell } from './FarmSystem.js';
 
 const PLANTING_PANEL = './ui/spring-planting.json';
@@ -207,6 +208,25 @@ export class SpringPlantingSystem extends createSystem({
         `${gameState.tobaccoCells} tobacco; ` +
         `Food ${colonyScore.foodSupply}, Wealth ${colonyScore.tradeWealth}`,
     );
+
+    // TRADEOFF CALLOUT (P2.4) — name the cost of this split in plain words so
+    // the food-vs-wealth choice is unmistakable. Never says "opportunity cost".
+    if (tobacco > corn) {
+      narrator.say(
+        'You planted more tobacco than corn. More tobacco means more to trade for wealth — but less food to carry your colony through winter.',
+        'wealth',
+      );
+    } else if (corn > tobacco) {
+      narrator.say(
+        'You planted more corn than tobacco. More corn means more food for the winter — but less tobacco to trade for wealth.',
+        'food',
+      );
+    } else {
+      narrator.say(
+        'You split the field evenly between corn and tobacco — some food to eat, some tobacco to trade. A balanced start.',
+        'neutral',
+      );
+    }
 
     // ADVANCE — Spring → Summer (PhaseSystem snapshots + swaps the world; our
     // phase listener hides this HUD).

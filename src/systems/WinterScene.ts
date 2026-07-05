@@ -59,6 +59,7 @@ import {
 
 import { gameState } from '../game/GameState.js';
 import { colonyScore } from '../game/ColonyScore.js';
+import { narrator } from '../game/Narrator.js';
 // Reuse the settlement's shadow-enabled matte mesh helper + shared palette so
 // the Winter props read as the same world (never raw/neon materials).
 import { COLORS, solid } from '../environment/Settlement.js';
@@ -249,6 +250,11 @@ export class WinterScene extends createSystem({
         `reputation=${crownReputation} (${this.reputationBand})`,
     );
 
+    // NARRATOR (P2.4): point the player at WHY the winter village looks the way
+    // it does — tie the visible scene to their weakest (or strongest) pillar in
+    // plain words, so the environmental storytelling reads as consequence.
+    this.sayWinterConsequence(foodSupply, tradeWealth, crownReputation);
+
     // ── STEP 3: begin the warm → cold lighting tween ──────────────────────
     this.beginLightShift();
 
@@ -263,6 +269,43 @@ export class WinterScene extends createSystem({
     this.playWinterWind();
     this.dashboardCountdown = DASHBOARD_DELAY_SECONDS;
     this.dashboardOpened = false;
+  }
+
+  /**
+   * Speak one plain-words line tying the winter scene to the player's scores.
+   * Leads with the WEAKEST pillar (the hardship the player can see around them)
+   * when any pillar is low; otherwise it celebrates a colony that thrived. Never
+   * uses curriculum jargon — just makes the cause-and-effect legible.
+   */
+  private sayWinterConsequence(
+    food: number,
+    wealth: number,
+    crown: number,
+  ): void {
+    const lowest = Math.min(food, wealth, crown);
+    if (lowest >= 40) {
+      narrator.say(
+        'Your colony made it through the year in good shape — well-fed, prosperous, and in the Crown\'s favor. Look around: the settlement is thriving.',
+        'neutral',
+      );
+      return;
+    }
+    if (lowest === food) {
+      narrator.say(
+        'Look around — the winter is hard here. Low food stores mean hungry, struggling settlers. The choices that traded food away are showing now.',
+        'food',
+      );
+    } else if (lowest === wealth) {
+      narrator.say(
+        'Look around — the settlement looks poor and bare. Low trade wealth left little to build or repair with this winter.',
+        'wealth',
+      );
+    } else {
+      narrator.say(
+        'Look around — the mood is uneasy. Low standing with the Crown left the colony without England\'s support and protection this winter.',
+        'crown',
+      );
+    }
   }
 
   // ════════════════════════════════════════════════════════════════════════

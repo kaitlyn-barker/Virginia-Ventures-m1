@@ -1,0 +1,56 @@
+<style>
+  /* NARRATOR CALLOUT (P2.4). A slim parchment banner anchored just under the
+     score HUD (top-left) that names the tradeoff of the player's last big
+     decision in plain words. NarratorSystem fades it in, holds it, and fades it
+     out; the left accent bar is tinted toward the affected pillar. Hidden until
+     the first callout, and suppressible via Settings > Narrator. */
+  .callout {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 60;
+    padding-top: 1.2;
+    padding-bottom: 1.2;
+    padding-left: 1.2;
+    padding-right: 1.6;
+    background-color: #2a2018;
+    border-color: #5b4226;
+    border-width: 0.2;
+    border-radius: 1.4;
+  }
+
+  /* Left accent stripe — recolored per tone (food/wealth/crown) at runtime. */
+  .accent {
+    width: 0.6;
+    height: 7.5;
+    border-radius: 0.3;
+    background-color: #c9a84c;
+    margin-right: 1.2;
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tag {
+    font-size: 1.2;
+    font-weight: bold;
+    color: #b39b6e;
+    margin-bottom: 0.2;
+  }
+
+  .line {
+    font-size: 1.7;
+    color: #f1e7cf;
+    text-align: left;
+  }
+</style>
+<div id="narrator-root" class="callout">
+  <div id="narrator-accent" class="accent"></div>
+  <div class="body">
+    <span class="tag">ADVISOR</span>
+    <span id="narrator-line" class="line">.</span>
+  </div>
+</div>

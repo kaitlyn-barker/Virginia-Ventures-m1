@@ -85,6 +85,9 @@ import { DesktopLookSystem } from "./systems/DesktopLookSystem.js";
 // snap/smooth turning, audio mute, narrator toggle, text size. Opened from the
 // "Settings" tab on the season banner; applies choices live to LocomotionSystem.
 import { SettingsSystem } from "./systems/SettingsSystem.js";
+// Plain-words tradeoff callouts (P2.4): a slim "Advisor" banner under the score
+// HUD that names the cost of each big decision. Driven by the narrator emitter.
+import { NarratorSystem } from "./systems/NarratorSystem.js";
 // TEMP: placeholder per-phase markers so the state machine is testable today.
 import { buildPhaseScaffold } from "./systems/phase-scaffold.js";
 
@@ -248,6 +251,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
 
   // Always-on score HUD (top-left). Reads colonyScore; reveals on enter-colony.
   world.registerSystem(ScoreHudSystem);
+
+  // Narrator tradeoff callouts (P2.4). Slim banner under the score HUD; shows
+  // one plain-words line per major decision. Suppressible in Settings.
+  world.registerSystem(NarratorSystem);
 
   // 3D navigation waypoint. Registered at a LATE priority so it reads the final
   // camera pose each frame (after LocomotionSystem and the cutscene cameras

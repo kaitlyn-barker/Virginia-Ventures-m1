@@ -57,6 +57,15 @@ const FLOAT_DOWN = '#d9534f'; // loss (red)
 const SHIMMER = '#ffd77a'; // gold glow above 75
 const PULSE = '#d9534f'; // red glow below 25
 
+/** How long the on-change attention flash lasts on the affected bar (s). */
+const FLASH_TIME = 0.6;
+/** Per-pillar flash color, so a change reads as "this pillar" at a glance. */
+const PILLAR_FLASH: Record<Pillar['key'], string> = {
+  food: '#6dbf5a',
+  wealth: '#d9a441',
+  crown: '#9b6dd0',
+};
+
 /** Letter-grade badge backgrounds (brief: A gold, B green, C yellow, D orange, F red). */
 const GRADE_BG: Record<string, string> = {
   A: '#c9a84c',
@@ -80,6 +89,8 @@ interface Pillar {
   last: number;
   /** Remaining floater lifetime; <= 0 means inactive. */
   floatLeft: number;
+  /** Remaining on-change attention-flash time; <= 0 means inactive. */
+  flashLeft: number;
   /** Cheap dirty-check caches so a settled bar stops writing every frame. */
   lastInt: number;
   lastWidth: number;
@@ -118,6 +129,7 @@ export class ScoreHudSystem extends createSystem({
       elapsed: TWEEN_TIME,
       last: v,
       floatLeft: 0,
+      flashLeft: 0,
       lastInt: -1,
       lastWidth: -1,
       lastBorder: '',
@@ -190,8 +202,9 @@ export class ScoreHudSystem extends createSystem({
       p.from = p.shown;
       p.to = value;
       p.elapsed = 0;
-      // Kick off the rising floater.
+      // Kick off the rising floater + the on-change attention flash.
       p.floatLeft = FLOAT_TIME;
+      p.flashLeft = FLASH_TIME;
       const rounded = Math.round(delta);
       this.text(`hud-float-${p.key}`)?.setProperties({
         text: `${rounded > 0 ? '+' : ''}${rounded}`,
@@ -237,8 +250,21 @@ export class ScoreHudSystem extends createSystem({
         this.text(`hud-value-${p.key}`)?.setProperties({ text: `${intVal}/100` });
       }
 
-      // Shimmer above 75 / pulse below 25 — a gold/red glow border on the fill.
-      this.applyGlow(p, intVal);
+      // On-change flash takes precedence: a brief pillar-colored border pulse on
+      // the affected bar draws the eye to what just moved. When it lapses, the
+      // steady shimmer/pulse threshold glow resumes.
+      if (p.flashLeft > 0) {
+        p.flashLeft = Math.max(0, p.flashLeft - delta);
+        const k = p.flashLeft / FLASH_TIME; // 1 → 0
+        this.container(`hud-fill-${p.key}`)?.setProperties({
+          borderColor: PILLAR_FLASH[p.key],
+          borderWidth: 0.4 * k,
+        });
+        p.lastBorder = 'flash';
+      } else {
+        // Shimmer above 75 / pulse below 25 — a gold/red glow border on the fill.
+        this.applyGlow(p, intVal);
+      }
 
       // Floater: rise + fade, then hide (display lockstep with opacity).
       if (p.floatLeft > 0) {
