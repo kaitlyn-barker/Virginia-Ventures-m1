@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vv-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:runtime", "--", "--port", "8099", "--strictPort"],
+      "port": 8099,
+      "autoPort": false
+    }
+  ]
+}
