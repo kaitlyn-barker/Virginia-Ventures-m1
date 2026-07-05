@@ -51,7 +51,6 @@
 import {
   Vector3,
   createSystem,
-  RayInteractable,
   PanelDocument,
   PanelUI,
   ScreenSpace,
@@ -207,11 +206,14 @@ export class TradeShipArrival extends createSystem({
     this.toV = new Vector3();
 
     // Bottom-center subtitle caption (becomes a world-space panel in XR). Hidden
-    // until the Captain speaks.
+    // until the Captain speaks. NO RayInteractable: it's a passive subtitle, and
+    // this Fall-only overlay sits over the bottom-center of the screen — exactly
+    // where the Royal Decree's "Continue" and the ship-trade controls land. If it
+    // ever absorbed pointer input it would swallow those clicks (the caption is
+    // also made pointerEvents:'none' in setCaptionVisible as a hard guarantee).
     this.captionEntity = this.world
       .createTransformEntity()
       .addComponent(PanelUI, { config: CAPTION_CONFIG, maxWidth: 1.6, maxHeight: 0.8 })
-      .addComponent(RayInteractable)
       .addComponent(ScreenSpace, {
         bottom: '20%',
         left: '15vw',
@@ -439,6 +441,11 @@ export class TradeShipArrival extends createSystem({
       this.captionEntity.object3D.visible = visible;
     this.container('cap-root')?.setProperties({
       display: visible ? 'flex' : 'none',
+      // A subtitle must NEVER absorb pointer input. This overlay covers the
+      // bottom-center of the screen through the whole Fall dock sequence, right
+      // over the decree's Continue and the ship-trade controls — so keep it
+      // click-transparent in every state (shown or hidden).
+      pointerEvents: 'none',
     });
     if (visible) relayoutScreenSpacePanels(this.captionDoc);
   }
