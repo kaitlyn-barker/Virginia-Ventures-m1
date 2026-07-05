@@ -88,6 +88,9 @@ import { SettingsSystem } from "./systems/SettingsSystem.js";
 // Plain-words tradeoff callouts (P2.4): a slim "Advisor" banner under the score
 // HUD that names the cost of each big decision. Driven by the narrator emitter.
 import { NarratorSystem } from "./systems/NarratorSystem.js";
+// Cheap "life" (P2.3): a subtle idle sway/bob on the static colonist NPCs so the
+// settlement doesn't read as a frozen diorama. AmbientSway tags who gets it.
+import { IdleMotionSystem, AmbientSway } from "./systems/IdleMotionSystem.js";
 // TEMP: placeholder per-phase markers so the state machine is testable today.
 import { buildPhaseScaffold } from "./systems/phase-scaffold.js";
 
@@ -96,6 +99,11 @@ import { buildPhaseScaffold } from "./systems/phase-scaffold.js";
 import { gameState } from "./game/GameState.js";
 import { colonyScore } from "./game/ColonyScore.js";
 import { playerInventory } from "./game/PlayerInventory.js";
+import { arrivalSequence } from "./game/ArrivalSequence.js";
+
+// P2.3 procedural ambient audio bed (wind + river + gulls). Started from the
+// "Enter the Colony" gesture (which also unlocks Sfx); honors the mute setting.
+import { ambient } from "./audio/Ambient.js";
 
 // Static colonial-Virginia settlement environment (the web equivalent of the
 // Unity "ColonialSurvival" scene). Built from placeholder Three.js primitives.
@@ -184,6 +192,10 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   camera.position.set(0, 2.2, 15);
   camera.rotateX(-0.12); // slight downward tilt to take in the village
 
+  // Register AmbientSway BEFORE buildColonists() runs — placeNpc() adds it to
+  // each colonist as they're created, so the World must know its layout first.
+  world.registerComponent(AmbientSway);
+
   // ── Build the static settlement (ground, buildings, props, lighting) ─────
   buildSettlement(world);
 
@@ -266,6 +278,14 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // Narrator tradeoff callouts (P2.4). Slim banner under the score HUD; shows
   // one plain-words line per major decision. Suppressible in Settings.
   world.registerSystem(NarratorSystem);
+
+  // Idle NPC sway/bob (P2.3 "cheap life"). Reads AmbientSway-tagged colonists.
+  world.registerSystem(IdleMotionSystem);
+
+  // Start the procedural ambient bed on the "Enter the Colony" click (a user
+  // gesture, so the AudioContext may resume). It self-syncs with the mute
+  // setting thereafter; calling start() again later is a safe no-op.
+  arrivalSequence.onEnterColony(() => ambient.start());
 
   // 3D navigation waypoint. Registered at a LATE priority so it reads the final
   // camera pose each frame (after LocomotionSystem and the cutscene cameras

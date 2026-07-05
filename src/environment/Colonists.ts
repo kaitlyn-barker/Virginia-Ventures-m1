@@ -41,6 +41,10 @@ import {
 // Reuse the settlement's shadow-enabled, matte mesh helper.
 import { solid } from './Settlement.js';
 
+// P2.3 "cheap life": tag most colonists so IdleMotionSystem gives them a subtle
+// idle sway/bob. Script-driven figures (Captain, Smuggler) opt out.
+import { AmbientSway } from '../systems/IdleMotionSystem.js';
+
 // ── Palettes ────────────────────────────────────────────────────────────────
 // Skin tones (varied for diversity; Captain & Anne lighter, Thomas & James more
 // tanned, per the brief). Never tinted by clothing colours.
@@ -484,7 +488,14 @@ function placeNpc(
   g: Object3D,
   x: number,
   z: number,
-  opts: { y?: number; yaw?: number; face?: 'center'; scale?: [number, number, number] | number } = {},
+  opts: {
+    y?: number;
+    yaw?: number;
+    face?: 'center';
+    scale?: [number, number, number] | number;
+    /** Opt out of the idle sway (script-driven figures move themselves). */
+    sway?: boolean;
+  } = {},
 ): void {
   if (opts.scale !== undefined) {
     if (Array.isArray(opts.scale)) g.scale.set(...opts.scale);
@@ -494,7 +505,10 @@ function placeNpc(
   // Model "front" is local +Z; face the market centre (origin) if requested.
   if (opts.face === 'center') g.rotation.y = Math.atan2(-x, -z);
   else if (opts.yaw !== undefined) g.rotation.y = opts.yaw;
-  world.createTransformEntity(g);
+  const entity = world.createTransformEntity(g);
+  // Give everyone a subtle idle sway unless they're script-driven (opts.sway
+  // === false). AmbientSway is registered before buildColonists() in index.ts.
+  if (opts.sway !== false) entity.addComponent(AmbientSway);
 }
 
 // =============================================================================
@@ -621,7 +635,8 @@ export function buildColonists(world: World): void {
     }),
     -1.7,
     -1.6,
-    { face: 'center', scale: [1.0, 1.03, 1.0] },
+    // Script-driven in Fall (walks down the gangplank) — no idle sway.
+    { face: 'center', scale: [1.0, 1.03, 1.0], sway: false },
   );
 
   // ── ELIZABETH — farmer (Summer), outdoorsy: simple dress + straw hat. At
@@ -720,6 +735,7 @@ export function buildColonists(world: World): void {
     }),
     4.5,
     -19.0,
-    { yaw: -1.8 },
+    // Script-driven in Fall (retreats into hiding) — no idle sway.
+    { yaw: -1.8, sway: false },
   );
 }
