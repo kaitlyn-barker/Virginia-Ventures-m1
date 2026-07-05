@@ -1,6 +1,8 @@
 import { AssetManifest, SessionMode, World } from "@iwsdk/core";
 
 import { RayInteractable, PanelUI, ScreenSpace, Follower } from "@iwsdk/core";
+// TEMP click-diagnostic imports (remove with the [VVPICK] block below).
+import { Raycaster, Vector2, PanelDocument } from "@iwsdk/core";
 
 import { PanelSystem } from "./panel.js";
 
@@ -453,5 +455,58 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // force a re-layout against the settled natural sizes.
   for (const ms of [250, 750, 1500]) {
     setTimeout(() => window.dispatchEvent(new Event("resize")), ms);
+  }
+
+  // ── TEMP click diagnostic ([VVPICK]) — logs what the app's OWN screen-space
+  //    pick finds under each real click, so we can see whether a click on the
+  //    decree Continue actually hits the button on the player's viewport. Remove
+  //    once the click issue is diagnosed. Harmless: it only reads + logs. ──────
+  {
+    const canvas = document.querySelector("canvas");
+    const rc = new Raycaster();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scene = world.scene as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const PU = PanelUI as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const PD = PanelDocument as any;
+    canvas?.addEventListener(
+      "pointerdown",
+      (e) => {
+        for (let i = 0; i < 400; i++) {
+          const cfg = PU.data?.config?.[i];
+          const doc = PD.data?.document?.[i];
+          if (cfg && doc) doc.name = String(cfg);
+        }
+        const rect = canvas.getBoundingClientRect();
+        const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+        rc.setFromCamera(new Vector2(nx, ny), world.camera);
+        const arr = (scene.screenSpaceDescendants ?? []) as object[];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const hits = rc.intersectObjects(arr as any[], true);
+        const names: string[] = [];
+        for (const h of hits) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let o: any = h.object;
+          let nm = "";
+          while (o) {
+            if (typeof o.name === "string" && o.name.includes(".json")) { nm = o.name; break; }
+            o = o.parent;
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          let c: any = h.object;
+          let vis = "?";
+          while (c) {
+            if (c.isVisible && typeof c.isVisible.value === "boolean") { vis = String(c.isVisible.value); break; }
+            c = c.parent;
+          }
+          names.push(`${nm || "?"}(vis=${vis})`);
+          if (names.length >= 3) break;
+        }
+        console.log(`[VVPICK] click ndc=${nx.toFixed(2)},${ny.toFixed(2)} canvas=${rect.width | 0}x${rect.height | 0} → ${names.join(" | ") || "NO HIT"}`);
+      },
+      true,
+    );
   }
 });
