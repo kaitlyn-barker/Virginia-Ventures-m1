@@ -22,7 +22,6 @@
  */
 
 import {
-  Follower,
   createComponent,
   createSystem,
   PanelDocument,
@@ -38,7 +37,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { springProgress } from '../game/SpringProgress.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
@@ -145,7 +144,7 @@ export class SpringTutorialSystem extends createSystem({
       })
       // XR: center the outline modal in front of the headset (its Transform is
       // never positioned, so without this it would land at the world origin).
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.7]));
+      .addComponent(HudAnchor, { offset: [0, 0, -1.7] });
     this.tutorialEntity.object3D!.visible = false;
 
     // Tip / script toast (top-right corner), hidden until needed.
@@ -163,7 +162,7 @@ export class SpringTutorialSystem extends createSystem({
       })
       // XR: keep the tip toast upper-center in front of the headset, mirroring
       // its top-center desktop spot.
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0.4, -1.7]));
+      .addComponent(HudAnchor, { offset: [0, 0.4, -1.7] });
     this.tipEntity.object3D!.visible = false;
 
     // Wire the outline's Begin button once its document loads.

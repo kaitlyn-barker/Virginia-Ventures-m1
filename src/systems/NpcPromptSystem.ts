@@ -35,7 +35,6 @@
  */
 
 import {
-  Follower,
   Hovered,
   PanelDocument,
   PanelUI,
@@ -47,7 +46,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
 
@@ -105,7 +104,7 @@ export class NpcPromptSystem extends createSystem({
       })
       // XR: keep the hint upper-center in front of the headset, mirroring its
       // top-center desktop spot (its Transform is never positioned otherwise).
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0.45, -1.6]));
+      .addComponent(HudAnchor, { offset: [0, 0.45, -1.6] });
     this.promptEntity.object3D!.visible = false;
 
     this.cleanupFuncs.push(

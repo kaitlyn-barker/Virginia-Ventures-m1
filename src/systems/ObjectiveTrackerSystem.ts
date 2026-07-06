@@ -29,7 +29,6 @@
 import {
   AudioUtils,
   createSystem,
-  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -39,13 +38,14 @@ import {
   eq,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 
 import { gameState, PHASE_ORDER, type GamePhase } from '../game/GameState.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { SEASON_ACCENT, SEASON_LABEL } from './seasons.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
 import { arrivalSequence } from '../game/ArrivalSequence.js';
+import { hudSettings } from '../game/HudSettings.js';
 
 /** The tracker panel's UI config (compiled from ui/objective-tracker.uikitml). */
 const PANEL_CONFIG = './ui/objective-tracker.json';
@@ -163,7 +163,7 @@ export class ObjectiveTrackerSystem extends createSystem({
         zOffset: 0.26,
       })
       // XR: float the objective tracker to the upper-right in front of the headset.
-      .addComponent(Follower, hudFollow(this.player.head, [0.82, 0.12, -1.92]));
+      .addComponent(HudAnchor, { offset: [1.1, 0.2, -2.4] });
 
     // (2) When the document is ready (now or later), capture it and paint the
     //     current phase. `true` replays for an already-loaded panel.
@@ -187,6 +187,9 @@ export class ObjectiveTrackerSystem extends createSystem({
     this.cleanupFuncs.push(
       arrivalSequence.onEnterColony(() => this.setHidden(false)),
     );
+
+    // Re-apply visibility when the player toggles the HUD layer.
+    this.cleanupFuncs.push(hudSettings.onChanged(() => this.applyVisibility()));
 
     // (3) Swap the objective when the phase changes. Leaving Arrival ticks the
     //     "choose your supplies" step; entering Summer schedules the orientation
@@ -331,9 +334,19 @@ export class ObjectiveTrackerSystem extends createSystem({
     this.container(id)?.setProperties({ display });
   }
 
+  /** This system's own reason to hide (the welcome/title screen); the player's
+   *  HUD toggle is combined in applyVisibility(). */
+  private ownHidden = true;
+
   /** Show/hide the whole tracker HUD by toggling its root container. */
   private setHidden(hidden: boolean): void {
-    this.setDisplay('quest-root', hidden ? 'none' : 'flex');
+    this.ownHidden = hidden;
+    this.applyVisibility();
+  }
+
+  private applyVisibility(): void {
+    const show = !this.ownHidden && hudSettings.visible;
+    this.setDisplay('quest-root', show ? 'flex' : 'none');
   }
 
   private text(id: string): UIKit.Text | undefined {

@@ -37,4 +37,5 @@
   <button id="season-Summer" class="tab">Summer</button>
   <button id="season-Fall" class="tab">Fall</button>
   <button id="season-Winter" class="tab">Winter</button>
+  <button id="hud-toggle" class="tab">HUD: on</button>
 </div>

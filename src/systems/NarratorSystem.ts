@@ -13,7 +13,6 @@
 
 import {
   createSystem,
-  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -24,13 +23,14 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import {
   narrator,
   type NarratorMessage,
   type NarratorTone,
 } from '../game/Narrator.js';
 import { gameSettings } from '../game/GameSettings.js';
+import { hudSettings } from '../game/HudSettings.js';
 
 const PANEL_CONFIG = './ui/narrator.json';
 
@@ -78,8 +78,9 @@ export class NarratorSystem extends createSystem({
         height: '96px',
         zOffset: 0.26,
       })
-      // XR: float it under the score HUD in front of the headset.
-      .addComponent(Follower, hudFollow(this.player.head, [-0.95, -0.05, -1.95]));
+      // XR: float it under the score HUD in front of the headset (same 2.4m
+      // shell as the other HUDs so the layer stays out of the action).
+      .addComponent(HudAnchor, { offset: [-1.15, 0.02, -2.4] });
     this.entity.object3D!.visible = false;
 
     this.cleanupFuncs.push(
@@ -109,10 +110,22 @@ export class NarratorSystem extends createSystem({
         }
       }),
     );
+
+    // If the HUD layer is tucked away mid-callout, clear it the same way.
+    // (While hidden, enqueue() drops new callouts — see the guard there.)
+    this.cleanupFuncs.push(
+      hudSettings.onChanged((visible) => {
+        if (!visible) {
+          this.queue.length = 0;
+          this.hideNow();
+        }
+      }),
+    );
   }
 
   private enqueue(msg: NarratorMessage): void {
     if (!gameSettings.current.narration) return; // suppressed by the player
+    if (!hudSettings.visible) return; // the HUD layer is tucked away
     this.queue.push(msg);
   }
 

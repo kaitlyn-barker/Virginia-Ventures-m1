@@ -21,6 +21,7 @@
  */
 
 import {
+  InputComponent,
   createComponent,
   createSystem,
   PanelDocument,
@@ -29,6 +30,7 @@ import {
 } from '@iwsdk/core';
 
 import { gameState, PHASE_ORDER, type GamePhase } from '../game/GameState.js';
+import { hudSettings } from '../game/HudSettings.js';
 import { SEASON_ACCENT } from './seasons.js';
 import { sfx } from '../audio/Sfx.js';
 
@@ -61,9 +63,28 @@ export class SeasonBannerSystem extends createSystem({
           if (!doc) return;
           this.wireTabs(doc);
           this.refreshHighlight(doc, gameState.currentPhase);
+          // The HUD tab: tucks the dashboard layer (score / inventory /
+          // objectives / needs / narrator) away and brings it back. The banner
+          // itself stays — it's the nav bar and hosts this very toggle.
+          const hudTab = doc.getElementById('hud-toggle') as UIKit.Text | null;
+          hudTab?.addEventListener('click', () => {
+            sfx.click();
+            hudSettings.toggle();
+          });
+          this.refreshHudTab(doc);
         },
         true,
       ),
+    );
+
+    // Repaint the HUD tab whenever the setting flips (from any source).
+    this.cleanupFuncs.push(
+      hudSettings.onChanged(() => {
+        for (const entity of this.queries.banner.entities) {
+          const doc = this.getDoc(entity.index);
+          if (doc) this.refreshHudTab(doc);
+        }
+      }),
     );
 
     // (2) Keep the highlight in sync with the real phase, no matter what caused
@@ -140,6 +161,32 @@ export class SeasonBannerSystem extends createSystem({
           opacity: 0.55,
         });
       }
+    }
+  }
+
+  /** Paint the HUD toggle tab to show the current state at a glance. */
+  private refreshHudTab(doc: UIKitDocument): void {
+    const tab = doc.getElementById('hud-toggle') as UIKit.Text | null;
+    tab?.setProperties({
+      text: hudSettings.visible ? 'HUD: on' : 'HUD: off',
+      backgroundColor: hudSettings.visible ? TAB_DONE_BG : TAB_LOCKED_BG,
+      color: hudSettings.visible ? TAB_DONE_TEXT : TAB_LOCKED_TEXT,
+      opacity: 1,
+    });
+  }
+
+  /**
+   * Keyboard / controller shortcuts for the same toggle: H on desktop, and the
+   * X (left) or B (right) face button in VR — buttons the built-in locomotion
+   * and grab systems don't use, so nothing else fights over them.
+   */
+  update(): void {
+    if (this.input.keyboard.getKeyDown('KeyH')) hudSettings.toggle();
+    if (
+      this.input.xr.gamepads.left?.getButtonDown(InputComponent.X_Button) ||
+      this.input.xr.gamepads.right?.getButtonDown(InputComponent.B_Button)
+    ) {
+      hudSettings.toggle();
     }
   }
 }

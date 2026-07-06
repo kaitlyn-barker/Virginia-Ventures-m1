@@ -29,7 +29,6 @@
  */
 
 import {
-  Follower,
   Vector3,
   createSystem,
   RayInteractable,
@@ -43,7 +42,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { colonyScore } from '../game/ColonyScore.js';
 import { playerInventory } from '../game/PlayerInventory.js';
@@ -137,7 +136,7 @@ export class SmugglingChoice extends createSystem({
       })
       // XR: center the pitch in front of the headset (its Transform is never
       // positioned, so without this it would land at the world origin).
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.7]));
+      .addComponent(HudAnchor, { offset: [0, 0, -1.7] });
     this.smugEntity.object3D!.visible = false;
 
     // ── Dutch trade panel (centered), hidden until Choice A ─────────────────
@@ -153,7 +152,7 @@ export class SmugglingChoice extends createSystem({
       })
       // XR: the Dutch deal replaces the pitch (they never show together), a
       // touch nearer so it reads as the follow-up step.
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.6]));
+      .addComponent(HudAnchor, { offset: [0, 0, -1.6] });
     this.dutchEntity.object3D!.visible = false;
 
     // Wire the smuggler panel.

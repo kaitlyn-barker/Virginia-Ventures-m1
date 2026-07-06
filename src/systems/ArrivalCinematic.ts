@@ -45,7 +45,7 @@
  */
 
 import {
-  Follower,
+  Quaternion,
   Vector3,
   createSystem,
   RayInteractable,
@@ -58,9 +58,10 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { arrivalSequence } from '../game/ArrivalSequence.js';
 import { gameState } from '../game/GameState.js';
+import { teleportRig } from './rigTeleport.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 import { sfx } from '../audio/Sfx.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
@@ -149,6 +150,26 @@ const SHOTS: Shot[] = [
   },
 ];
 
+/**
+ * THE XR VERSION OF THE TOUR — teleport vantages (parallel to SHOTS).
+ *
+ * In an immersive session the headset owns the camera, so we cannot dolly it —
+ * and smoothly gliding the RIG instead would be a motion-sickness machine
+ * (visual motion with no matching vestibular signal). The comfortable idiom is
+ * the one every VR game uses: TELEPORT. At the start of each shot we snap the
+ * player rig to a ground-level vantage near that shot's camera path, facing
+ * that shot's landmark, and let them look around freely while the caption
+ * tells the story. Five snaps over ~23s, ending at the same standing spot the
+ * desktop tour settles at, so both platforms hand over control identically.
+ */
+const XR_VANTAGES: { pos: [number, number]; look: [number, number] }[] = [
+  { pos: [6, -8], look: [0, -33] }, // A — the dock, facing the moored ship
+  { pos: [4, -5], look: [0, 4] }, // B — facing the market + common well
+  { pos: [0, 13], look: [0, 7] }, // C — facing the neighbors' homes
+  { pos: [5, 10], look: [-8.5, 8.5] }, // D — facing the open fields
+  { pos: [0, 15], look: [0, 0] }, // E — the standing vantage, facing north
+];
+
 /** Title-card caption per shot (parallel to SHOTS). Plain hyphens only — the
  *  UIKit MSDF font lacks an em-dash glyph (renders as a box). */
 interface Caption {
@@ -204,11 +225,19 @@ export class ArrivalCinematic extends createSystem({
   private fromV!: Vector3;
   private toV!: Vector3;
 
+  /** XR tour state: which vantage the rig is snapped to (-1 = none yet) and
+   *  the pose it is held at (re-pinned each frame to block locomotion). */
+  private xrShotApplied = -1;
+  private xrPos!: Vector3;
+  private xrQuat!: Quaternion;
+
   init() {
     this.camPos = new Vector3();
     this.camLook = new Vector3();
     this.fromV = new Vector3();
     this.toV = new Vector3();
+    this.xrPos = new Vector3();
+    this.xrQuat = new Quaternion();
 
     // Lower-center title card (becomes a world-space panel in XR). Sits above the
     // season banner. Hidden until the tour starts.
@@ -228,7 +257,7 @@ export class ArrivalCinematic extends createSystem({
       // Transform — the origin — so without this it sits at the player's feet.
       // Keep the title card lower-center in front of the headset, same as the
       // desktop layout.
-      .addComponent(Follower, hudFollow(this.player.head, [0, -0.35, -1.6]));
+      .addComponent(HudAnchor, { offset: [0, -0.35, -1.6] });
     this.captionEntity.object3D!.visible = false;
 
     // Grab the caption document when it loads; keep it hidden.
@@ -285,6 +314,7 @@ export class ArrivalCinematic extends createSystem({
     this.running = true;
     this.completeEmitted = false;
     this.shownShot = -1;
+    this.xrShotApplied = -1;
     this.setCaptionVisible(false);
     console.log('[Arrival] Entering the colony - orientation tour begins.');
   }
@@ -326,6 +356,26 @@ export class ArrivalCinematic extends createSystem({
       this.lerpArr(shot.fromLook, shot.toLook, p, this.camLook);
       this.camera.position.copy(this.camPos);
       this.camera.lookAt(this.camLook);
+    } else {
+      // ── XR: teleport the RIG to each shot's vantage instead ─────────────
+      const idx = this.shotIndexAt(t);
+      if (idx !== this.xrShotApplied) {
+        this.xrShotApplied = idx;
+        const v = XR_VANTAGES[idx];
+        this.xrPos.set(v.pos[0], 0, v.pos[1]);
+        // Rig forward is -Z at identity; yaw it so -Z points at the landmark.
+        const yaw = Math.atan2(-(v.look[0] - v.pos[0]), -(v.look[1] - v.pos[1]));
+        this.xrQuat.setFromAxisAngle(UP, yaw);
+        // Route the move through the locomotion engine too — its worker keeps
+        // an authoritative copy of the rig position and would otherwise snap
+        // the player back the moment we stop pinning (see rigTeleport.ts).
+        teleportRig(this.world, v.pos[0], v.pos[1]);
+      }
+      // Re-pin every frame so thumbstick locomotion can't drift the player
+      // away mid-tour (the headset still looks around freely — we only place
+      // the rig, never the head).
+      this.player.position.copy(this.xrPos);
+      this.player.quaternion.copy(this.xrQuat);
     }
 
     // ── Title-card caption ────────────────────────────────────────────────
@@ -347,6 +397,14 @@ export class ArrivalCinematic extends createSystem({
       this.camera.position.set(0, 2.2, 15);
       this.camLook.set(0, 1.6, 0);
       this.camera.lookAt(this.camLook);
+    } else {
+      // XR: leave the rig at the same standing vantage, facing the village —
+      // the exact spot the desktop tour hands over at — then release it. The
+      // teleport goes through the locomotion engine so it sticks (a raw rig
+      // write is overwritten by the locomotor worker on the next frame).
+      teleportRig(this.world, 0, 15);
+      this.player.position.set(0, 0, 15);
+      this.player.quaternion.identity();
     }
     if (!this.completeEmitted) {
       this.completeEmitted = true;
@@ -430,3 +488,7 @@ export class ArrivalCinematic extends createSystem({
 function clamp01(v: number): number {
   return v < 0 ? 0 : v > 1 ? 1 : v;
 }
+
+/** World up — the yaw axis for the XR vantage snaps (module-level constant so
+ *  update() never allocates). */
+const UP = new Vector3(0, 1, 0);

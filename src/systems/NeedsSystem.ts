@@ -31,7 +31,6 @@
 
 import {
   AudioUtils,
-  Follower,
   createSystem,
   Interactable,
   PanelDocument,
@@ -42,8 +41,9 @@ import {
   eq,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
+import { hudSettings } from '../game/HudSettings.js';
 import { colonyScore } from '../game/ColonyScore.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
 
@@ -168,9 +168,12 @@ export class NeedsSystem extends createSystem({
         zOffset: 0.26,
       })
       // XR: float the needs checklist mid-left in front of the headset, below
-      // the score HUD ([-0.95, 0.3]) and narrator banner ([-0.95, -0.05]) that
-      // share the left column on desktop.
-      .addComponent(Follower, hudFollow(this.player.head, [-0.95, -0.42, -1.95]));
+      // the score HUD ([-1.15, 0.5]) and narrator banner ([-1.15, 0.02]) that
+      // share the left column on desktop. Same 2.4m HUD shell.
+      .addComponent(HudAnchor, { offset: [-1.15, -0.5, -2.4] });
+
+    // Re-apply visibility when the player toggles the HUD layer.
+    this.cleanupFuncs.push(hudSettings.onChanged(() => this.applyVisibility()));
 
     // (2) When the panel's document finishes loading (now or later), grab a
     //     reference and paint whatever state we're in. `true` replays for a
@@ -393,9 +396,19 @@ export class NeedsSystem extends createSystem({
   // ─────────────────────────────── UI helpers ───────────────────────────────
 
   /** Show/hide the whole panel by toggling its root container's display. */
+  /** This system's own reason to hide (any phase that isn't Summer); the
+   *  player's HUD toggle is combined in applyVisibility(). */
+  private ownHidden = true;
+
   private setPanelHidden(hidden: boolean): void {
+    this.ownHidden = hidden;
+    this.applyVisibility();
+  }
+
+  private applyVisibility(): void {
+    const show = !this.ownHidden && hudSettings.visible;
     this.container('needs-root')?.setProperties({
-      display: hidden ? 'none' : 'flex',
+      display: show ? 'flex' : 'none',
     });
   }
 

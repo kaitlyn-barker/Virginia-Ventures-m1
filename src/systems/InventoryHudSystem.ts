@@ -15,7 +15,6 @@
 
 import {
   createSystem,
-  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -25,11 +24,12 @@ import {
   eq,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 
 import { playerInventory } from '../game/PlayerInventory.js';
 import { gameState } from '../game/GameState.js';
 import { arrivalSequence } from '../game/ArrivalSequence.js';
+import { hudSettings } from '../game/HudSettings.js';
 
 /** The HUD panel's UI config (compiled from ui/inventory.uikitml). */
 const PANEL_CONFIG = './ui/inventory.json';
@@ -67,7 +67,7 @@ export class InventoryHudSystem extends createSystem({
         zOffset: 0.26,
       })
       // XR: float the goods readout to the lower-left in front of the headset.
-      .addComponent(Follower, hudFollow(this.player.head, [-0.55, -0.5, -1.7]));
+      .addComponent(HudAnchor, { offset: [-0.8, -0.62, -2.1] });
 
     // (2) When the document is ready (now or later), grab it and paint the
     //     current counts. `true` replays for an already-loaded panel.
@@ -98,12 +98,24 @@ export class InventoryHudSystem extends createSystem({
     this.cleanupFuncs.push(
       arrivalSequence.onEnterColony(() => this.setHidden(false)),
     );
+
+    // (5) Re-apply visibility when the player toggles the HUD layer.
+    this.cleanupFuncs.push(hudSettings.onChanged(() => this.applyVisibility()));
   }
 
-  /** Show/hide the whole HUD by toggling its root container's display. */
+  /** This system's own reason to hide (the welcome/title screen); the player's
+   *  HUD toggle is combined in applyVisibility(). */
+  private ownHidden = true;
+
   private setHidden(hidden: boolean): void {
+    this.ownHidden = hidden;
+    this.applyVisibility();
+  }
+
+  private applyVisibility(): void {
+    const show = !this.ownHidden && hudSettings.visible;
     (this.doc?.getElementById('inv-root') as UIKit.Container | null)?.setProperties({
-      display: hidden ? 'none' : 'flex',
+      display: show ? 'flex' : 'none',
     });
   }
 

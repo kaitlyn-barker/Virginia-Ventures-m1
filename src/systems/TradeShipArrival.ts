@@ -49,7 +49,6 @@
  */
 
 import {
-  Follower,
   Vector3,
   createSystem,
   PanelDocument,
@@ -62,8 +61,9 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
+import { teleportRig } from './rigTeleport.js';
 import { fallSequence } from '../game/FallSequence.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
 
@@ -195,6 +195,10 @@ export class TradeShipArrival extends createSystem({
   /** Which caption line is currently shown (avoids re-setting text every frame). */
   private shownLine = 0;
 
+  /** XR: whether the one-shot locomotor teleport to the dock seat has fired
+   *  for this Fall hold (reset when a new hold begins). */
+  private xrDockSeated = false;
+
   // Scratch vectors — allocate once, never per frame (VR frame-budget rule).
   private camPos!: Vector3;
   private camLook!: Vector3;
@@ -226,7 +230,7 @@ export class TradeShipArrival extends createSystem({
       // Transform — the origin — so without this the subtitles would sit at the
       // player's feet. Keep them lower-center in front of the headset, matching
       // the desktop framing.
-      .addComponent(Follower, hudFollow(this.player.head, [0, -0.4, -1.7]));
+      .addComponent(HudAnchor, { offset: [0, -0.4, -1.7] });
     this.captionEntity.object3D!.visible = false;
 
     // Grab the caption document when it loads; keep it hidden.
@@ -294,6 +298,7 @@ export class TradeShipArrival extends createSystem({
     this.holdView = true;
     this.arrivalEmitted = false;
     this.shownLine = 0;
+    this.xrDockSeated = false;
 
     // Move the Captain to the top of the gangplank, facing the dock (+Z), ready
     // to descend. If he wasn't found, the cinematic still runs (camera only).
@@ -325,11 +330,24 @@ export class TradeShipArrival extends createSystem({
     const browser = !this.renderer.xr.isPresenting;
 
     // Pin the rig to the origin so (a) the camera math stays in world space and
-    // (b) locomotion can't move the player during the scripted sequence. Only in
-    // browser mode — in XR the headset owns the rig and we must not yank it.
+    // (b) locomotion can't move the player during the scripted sequence. In XR
+    // we can't drive the camera, so instead TELEPORT the rig to the dock — the
+    // spot the desktop dialogue framing looks from — and hold it there through
+    // the whole Fall set-piece (arrival, decree, trading, smuggler). The player
+    // watches the Captain descend and the Smuggler approach from front-row; the
+    // headset still looks around freely (we place the rig, never the head).
     if (browser) {
       this.player.position.set(0, 0, 0);
       this.player.quaternion.identity();
+    } else {
+      if (!this.xrDockSeated) {
+        this.xrDockSeated = true;
+        // One-shot sync with the locomotion engine so the seat survives the
+        // moment we stop pinning (when smuggling resolves) — see rigTeleport.
+        teleportRig(this.world, 0, -7);
+      }
+      this.player.position.set(0, 0, -7);
+      this.player.quaternion.identity(); // -Z forward → facing the ship/Captain
     }
 
     if (this.cinematicRunning) {

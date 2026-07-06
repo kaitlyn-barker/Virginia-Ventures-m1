@@ -18,7 +18,6 @@
  */
 
 import {
-  Follower,
   createSystem,
   Interactable,
   PanelDocument,
@@ -30,7 +29,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState, type GamePhase } from '../game/GameState.js';
 import { SEASON_ACCENT } from './seasons.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
@@ -100,7 +99,7 @@ export class PhaseTransitionSystem extends createSystem({
       // XR: hold the chapter card centered in front of the headset, nearer than
       // every other panel (they sit at -1.6..-1.95) so it still reads as the
       // front-most layer. Without this it would land at the world origin.
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.5]));
+      .addComponent(HudAnchor, { offset: [0, 0, -1.5] });
     this.entity.object3D!.visible = false;
 
     this.cleanupFuncs.push(

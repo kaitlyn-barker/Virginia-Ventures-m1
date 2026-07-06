@@ -32,7 +32,6 @@
  */
 
 import {
-  Follower,
   createSystem,
   RayInteractable,
   PanelDocument,
@@ -44,7 +43,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { colonyScore } from '../game/ColonyScore.js';
 import { playerInventory, type GoodType } from '../game/PlayerInventory.js';
@@ -131,7 +130,7 @@ export class ShipTrading extends createSystem({
       // XR: center the big trade board in front of the headset, a touch farther
       // out than the smaller modals so it doesn't fill the whole view. Without
       // this it would land at the world origin (its Transform is never set).
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0.05, -1.9]));
+      .addComponent(HudAnchor, { offset: [0, 0.05, -1.9] });
     this.panelEntity.object3D!.visible = false;
 
     // Capture the document + wire all the buttons when the panel loads.

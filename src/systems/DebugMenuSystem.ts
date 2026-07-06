@@ -28,7 +28,6 @@
  */
 
 import {
-  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -40,7 +39,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState, type GamePhase } from '../game/GameState.js';
 import { colonyScore } from '../game/ColonyScore.js';
 import { playerInventory } from '../game/PlayerInventory.js';
@@ -113,7 +112,7 @@ export class DebugMenuSystem extends createSystem({
       })
       // XR (dev/emulator only — this system never ships): float the test menu
       // upper-right in front of the headset so phase jumps work in-session.
-      .addComponent(Follower, hudFollow(this.player.head, [0.6, 0.35, -1.5]));
+      .addComponent(HudAnchor, { offset: [0.6, 0.35, -1.5] });
     this.menuEntity.object3D!.visible = false;
 
     this.cleanupFuncs.push(

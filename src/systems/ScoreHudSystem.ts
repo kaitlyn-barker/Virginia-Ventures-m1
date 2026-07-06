@@ -22,7 +22,6 @@
 
 import {
   createSystem,
-  Follower,
   Interactable,
   PanelDocument,
   PanelUI,
@@ -32,11 +31,12 @@ import {
   eq,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 
 import { gameState } from '../game/GameState.js';
 import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
 import { arrivalSequence } from '../game/ArrivalSequence.js';
+import { hudSettings } from '../game/HudSettings.js';
 
 /** The HUD panel's UI config (compiled from ui/score-hud.uikitml). */
 const PANEL_CONFIG = './ui/score-hud.json';
@@ -156,7 +156,9 @@ export class ScoreHudSystem extends createSystem({
         zOffset: 0.26,
       })
       // XR: float the score HUD to the upper-left in front of the headset.
-      .addComponent(Follower, hudFollow(this.player.head, [-0.95, 0.3, -1.95]));
+      // Pushed out to 2.4m (angular size shrinks with distance) and wide of
+      // center so the HUD layer frames the view instead of blocking it.
+      .addComponent(HudAnchor, { offset: [-1.15, 0.5, -2.4] });
 
     // (2) Capture the document when it loads, paint once, set initial visibility.
     this.cleanupFuncs.push(
@@ -183,6 +185,9 @@ export class ScoreHudSystem extends createSystem({
     this.cleanupFuncs.push(
       colonyScore.onScoreChanged((snap) => this.onScoreChanged(snap)),
     );
+
+    // (5) Re-apply visibility when the player toggles the HUD layer.
+    this.cleanupFuncs.push(hudSettings.onChanged(() => this.applyVisibility()));
   }
 
   // ─────────────────────────────── reactions ─────────────────────────────────
@@ -337,8 +342,18 @@ export class ScoreHudSystem extends createSystem({
     return 'F';
   }
 
+  /** This system's own reason to hide (the welcome/title screen). The player's
+   *  HUD toggle is combined in applyVisibility(), never overwritten by it. */
+  private ownHidden = true;
+
   private setHidden(hidden: boolean): void {
-    this.container('hud-root')?.setProperties({ display: hidden ? 'none' : 'flex' });
+    this.ownHidden = hidden;
+    this.applyVisibility();
+  }
+
+  private applyVisibility(): void {
+    const show = !this.ownHidden && hudSettings.visible;
+    this.container('hud-root')?.setProperties({ display: show ? 'flex' : 'none' });
   }
 
   private text(id: string): UIKit.Text | undefined {

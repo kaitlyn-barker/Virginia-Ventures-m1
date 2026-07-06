@@ -4,7 +4,6 @@ import {
   RayInteractable,
   PanelUI,
   ScreenSpace,
-  Follower,
   CanvasPointerSystem,
 } from "@iwsdk/core";
 
@@ -46,7 +45,12 @@ import { MarketSystem, TradeStall } from "./systems/MarketSystem.js";
 // Summer neighbouring farms (Thomas, Elizabeth) — reuse the market trade panel.
 import { FarmVisitSystem, FarmPlot } from "./systems/FarmVisitSystem.js";
 // Spring planting: the 4x4 farm grid + grabbable corn/tobacco seed bags.
-import { FarmSystem, FarmCell, SeedBag } from "./systems/FarmSystem.js";
+import {
+  FarmSystem,
+  FarmCell,
+  SeedBag,
+  SeedBagTarget,
+} from "./systems/FarmSystem.js";
 // Spring: Thomas's branching farming-advice dialogue (corn vs tobacco lesson).
 import {
   ThomasAdviceSystem,
@@ -130,7 +134,7 @@ import { buildProps } from "./environment/Props.js";
 
 // Keeps a persistent HUD/ScreenSpace panel in front of the headset in XR (a
 // no-op on desktop, where ScreenSpace head-locks it under the camera).
-import { hudFollow } from "./ui/hudFollow.js";
+import { HudAnchor, HudAnchorSystem } from "./ui/hudFollow.js";
 
 // Lets UI systems force screen-space panels to re-fit their layout after their
 // content settles (needs the live World; registered once below).
@@ -203,6 +207,13 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   // each colonist as they're created, so the World must know its layout first.
   world.registerComponent(AmbientSway);
 
+  // Register HudAnchor before any panel entity adds it (the welcome panel a
+  // few lines down is the first). The system runs at a LATE priority so it
+  // reads each frame's FINAL head pose — after locomotion (-5) and the
+  // cinematic rig writers (39-41) — and never lags a teleport by a frame.
+  world.registerComponent(HudAnchor);
+  world.registerSystem(HudAnchorSystem, { priority: 48 });
+
   // ── Build the static settlement (ground, buildings, props, lighting) ─────
   buildSettlement(world);
 
@@ -244,8 +255,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     .addComponent(PhaseObject, { phase: "Arrival" })
     // In immersive XR, ScreenSpace returns the panel to world space at its
     // Transform (calibrated for the desktop camera), so it would sit behind the
-    // XR spawn. Follower keeps it in front of the headset (no-op on desktop).
-    .addComponent(Follower, hudFollow(world.player.head, [0, 0, -1.6]));
+    // XR spawn. HudAnchor keeps it in front of the headset (no-op on desktop).
+    .addComponent(HudAnchor, { offset: [0, 0, -1.6] });
   panelEntity.object3D!.position.set(0, 1.6, 8);
 
   world.registerSystem(PanelSystem);
@@ -281,6 +292,7 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   world.registerComponent(FarmPlot);
   world.registerComponent(FarmCell);
   world.registerComponent(SeedBag);
+  world.registerComponent(SeedBagTarget);
   world.registerComponent(SpringAdvisor);
   world.registerComponent(SpringNeighbor);
   // Winter (Consequences) prop tag — its score-driven entity collection.
@@ -436,8 +448,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
       zOffset: 0.26,
     })
     .addComponent(SeasonBanner)
-    // XR: keep the season nav bar low and in front of the headset.
-    .addComponent(Follower, hudFollow(world.player.head, [0, -0.5, -1.7]));
+    // XR: keep the season nav bar low and in front of the headset, below the
+    // dialogue/caption zone (-0.35..-0.45 at ~1.6m) so they never collide.
+    .addComponent(HudAnchor, { offset: [0, -0.72, -2.0] });
 
   // TEMP scaffolding: five placeholder markers (one per phase) so you can watch
   // the state machine enable exactly one group at a time. Remove this once the

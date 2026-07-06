@@ -35,7 +35,6 @@
  */
 
 import {
-  Follower,
   createSystem,
   RayInteractable,
   PanelDocument,
@@ -47,7 +46,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
-import { hudFollow } from '../ui/hudFollow.js';
+import { HudAnchor } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { fallSequence } from '../game/FallSequence.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
@@ -107,7 +106,7 @@ export class RoyalDecreeSystem extends createSystem({
       // XR: center the decree in front of the headset (its Transform is never
       // positioned, so without this it would land at the world origin). Same
       // centered-modal read as the desktop overlay.
-      .addComponent(Follower, hudFollow(this.player.head, [0, 0.05, -1.8]));
+      .addComponent(HudAnchor, { offset: [0, 0.05, -1.8] });
     this.panelEntity.object3D!.visible = false;
 
     // Capture the document + wire Continue when the panel loads; keep it hidden

@@ -100,6 +100,28 @@ export const SeedBag = createComponent('SeedBag', {
   },
 });
 
+/**
+ * The ray-click target riding on each seed bag.
+ *
+ * WHY THIS EXISTS: the GrabSystem stamps `pointerEventsType = {deny: 'ray'}`
+ * on every OneHandGrabbable's Object3D (so the grab handle owns the object
+ * without the ray fighting it). That deny inherits down the bag's whole mesh
+ * tree — which silently makes the bags UNCLICKABLE BY THE XR CONTROLLER RAY.
+ * The desktop mouse is a different pointer type, so click-to-select worked in
+ * the browser and only VR players hit it ("I can't select the tobacco seeds").
+ *
+ * The fix is a child ENTITY carrying an oversized invisible hit box that sets
+ * its own `pointerEventsType = 'all'`, overriding the inherited deny for the
+ * ray. Clicks land here; grabbing still works on the bag itself.
+ */
+export const SeedBagTarget = createComponent('SeedBagTarget', {
+  crop: {
+    type: Types.Enum,
+    enum: { Corn: 'corn', Tobacco: 'tobacco' },
+    default: 'corn',
+  },
+});
+
 /** The two crops a cell can hold (mirrors the SeedBag/FarmCell enums). */
 type Crop = 'corn' | 'tobacco';
 
@@ -157,6 +179,9 @@ export class FarmSystem extends createSystem({
   // grip button to grab a bag, and the XR ray-trigger drives it too. Hovered
   // plots glow so the player sees where a click (or the grab-paint) will sow.
   pressedBags: { required: [SeedBag, Pressed] },
+  // The bags' child click-target entities (see SeedBagTarget above): the path
+  // XR ray clicks actually arrive on, since the grabbable bag denies the ray.
+  pressedBagTargets: { required: [SeedBagTarget, Pressed] },
   pressedCells: { required: [FarmCell, Pressed] },
   hoveredCells: { required: [FarmCell, Hovered] },
 }) {
@@ -194,6 +219,11 @@ export class FarmSystem extends createSystem({
     this.cleanupFuncs.push(
       this.queries.pressedBags.subscribe('qualify', (bag) =>
         this.selectCrop(bag.getValue(SeedBag, 'crop') as Crop),
+      ),
+    );
+    this.cleanupFuncs.push(
+      this.queries.pressedBagTargets.subscribe('qualify', (target) =>
+        this.selectCrop(target.getValue(SeedBagTarget, 'crop') as Crop),
       ),
     );
     this.cleanupFuncs.push(
@@ -312,8 +342,11 @@ export class FarmSystem extends createSystem({
       .addComponent(PhaseObject, { phase: 'Spring' });
 
     // Two bags side by side on top of the stump, facing the approaching player.
-    this.buildSeedBag('corn', COLOR_CORN_SACK, 'Corn Seeds', stumpX - 0.26, stumpZ, stumpTopY);
-    this.buildSeedBag('tobacco', COLOR_TOBACCO_SACK, 'Tobacco Seeds', stumpX + 0.26, stumpZ, stumpTopY);
+    // Spaced wide (±0.34 on a 0.55-radius stump) so the two ray targets never
+    // crowd each other — clicking the tobacco bag in VR was nearly impossible
+    // at the old ±0.26 spacing once the selected corn bag scaled up beside it.
+    this.buildSeedBag('corn', COLOR_CORN_SACK, 'Corn Seeds', stumpX - 0.34, stumpZ, stumpTopY);
+    this.buildSeedBag('tobacco', COLOR_TOBACCO_SACK, 'Tobacco Seeds', stumpX + 0.34, stumpZ, stumpTopY);
   }
 
   /**
@@ -370,8 +403,31 @@ export class FarmSystem extends createSystem({
       // Built-in grab: proximity one-hand grip, free move + rotate.
       .addComponent(OneHandGrabbable, { translate: true, rotate: true })
       // Pointer/ray hover feedback (InputSystem drives Hovered/Pressed).
+      // NOTE: GrabSystem stamps `pointerEventsType = {deny: 'ray'}` on this
+      // object, so in XR the controller ray can never actually reach it —
+      // ray clicks are served by the child click-target entity below.
       .addComponent(RayInteractable)
       // Part of the Spring group: shown/grabbable only during Spring.
+      .addComponent(PhaseObject, { phase: 'Spring' });
+
+    // The RAY CLICK TARGET (see SeedBagTarget): an oversized invisible hit box
+    // covering sack + neck + label, as its own child entity. Oversized because
+    // the ~0.17m sack is precise enough for a mouse but brutal to hit with a
+    // controller ray from standing distance; invisible-but-raycastable because
+    // opacity 0 renders nothing while the raycaster still tests the geometry
+    // (only `visible: false` would exclude it). Its own `pointerEventsType`
+    // overrides the deny-ray the GrabSystem stamps on the bag root.
+    const hit = new Mesh(
+      new BoxGeometry(0.42, 0.72, 0.42),
+      new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+    );
+    hit.position.y = 0.32; // centered over sack (0–0.35) and label (~0.62)
+    hit.name = `SeedBagHit:${crop}`;
+    (hit as unknown as { pointerEventsType: string }).pointerEventsType = 'all';
+    this.world
+      .createTransformEntity(hit, { parent: entity })
+      .addComponent(SeedBagTarget, { crop })
+      .addComponent(RayInteractable)
       .addComponent(PhaseObject, { phase: 'Spring' });
 
     // Remember where it rests so we can ease it back when released.
