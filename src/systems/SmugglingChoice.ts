@@ -29,7 +29,9 @@
  */
 
 import {
+  Pressed,
   Vector3,
+  createComponent,
   createSystem,
   RayInteractable,
   PanelDocument,
@@ -56,6 +58,15 @@ import { CAPTAIN_SPOT, CAPTAIN_GANGPLANK_TOP } from './TradeShipArrival.js';
 
 const SMUGGLER_CONFIG = './ui/smuggler.json';
 const DUTCH_CONFIG = './ui/dutch-trade.json';
+
+/**
+ * Tags the Smuggler NPC so clicking HIM re-opens his pitch. PhaseSystem makes
+ * every Fall object ray-interactable, so the name-tag system puts a gold ring
+ * and a "Click to talk" label on the Smuggler during the encounter — players
+ * (very reasonably) click the man himself, and without this tag nothing
+ * consumed that press, which read as "the selections are not clickable".
+ */
+export const SmugglerNpc = createComponent('SmugglerNpc', {});
 
 const CAPTAIN_NAME = 'Captain Whitmore';
 const SMUGGLER_NAME = 'Smuggler';
@@ -98,6 +109,8 @@ export class SmugglingChoice extends createSystem({
     required: [PanelUI, PanelDocument],
     where: [eq(PanelUI, 'config', DUTCH_CONFIG)],
   },
+  // The Smuggler was just clicked (point + trigger) — see SmugglerNpc above.
+  pressedSmuggler: { required: [SmugglerNpc, Pressed] },
 }) {
   private captain?: Entity;
   private smuggler?: Entity;
@@ -112,6 +125,13 @@ export class SmugglingChoice extends createSystem({
   private clock = 0;
   private pitchShown = false;
   private smugglerStart!: Vector3; // where the Smuggler began (captured at begin)
+
+  /** Which of our two panels is currently on screen (kept by setVisible), and
+   *  whether the whole encounter has been resolved (Continue pressed). Used so
+   *  clicking the Smuggler NPC re-opens the pitch only when it makes sense. */
+  private smugOpen = false;
+  private dutchOpen = false;
+  private encounterDone = false;
 
   /** Dutch deal state. */
   private dutchTobacco = 0;
@@ -136,7 +156,9 @@ export class SmugglingChoice extends createSystem({
       })
       // XR: center the pitch in front of the headset (its Transform is never
       // positioned, so without this it would land at the world origin).
-      .addComponent(HudAnchor, { offset: [0, 0, -1.7] });
+      // Nearer than the other modals (-1.45 vs -1.7) so its two half-width
+      // choice buttons are big, easy trigger targets for young players.
+      .addComponent(HudAnchor, { offset: [0, 0, -1.45] });
     this.smugEntity.object3D!.visible = false;
 
     // ── Dutch trade panel (centered), hidden until Choice A ─────────────────
@@ -152,7 +174,7 @@ export class SmugglingChoice extends createSystem({
       })
       // XR: the Dutch deal replaces the pitch (they never show together), a
       // touch nearer so it reads as the follow-up step.
-      .addComponent(HudAnchor, { offset: [0, 0, -1.6] });
+      .addComponent(HudAnchor, { offset: [0, 0, -1.4] });
     this.dutchEntity.object3D!.visible = false;
 
     // Wire the smuggler panel.
@@ -207,6 +229,8 @@ export class SmugglingChoice extends createSystem({
           if (name === CAPTAIN_NAME && !this.captain) this.captain = entity;
           else if (name === SMUGGLER_NAME && !this.smuggler) {
             this.smuggler = entity;
+            // Clicking the man himself re-opens his pitch (see SmugglerNpc).
+            entity.addComponent(SmugglerNpc);
             // The Smuggler stays HIDDEN until his Step-4 approach (he is lurking
             // "near the dock"). Hidden from boot through Spring/Summer/Fall
             // arrival — he only reveals himself when he slips up to the player.
@@ -215,6 +239,18 @@ export class SmugglingChoice extends createSystem({
         },
         true,
       ),
+    );
+
+    // Clicking the Smuggler NPC brings his pitch (back) up. Players follow the
+    // "Click to talk" tag on the man rather than the floating panel, so that
+    // press must do something useful instead of being silently swallowed.
+    this.cleanupFuncs.push(
+      this.queries.pressedSmuggler.subscribe('qualify', () => {
+        if (!this.pitchShown || this.encounterDone) return; // not offered / resolved
+        if (this.smugOpen || this.dutchOpen) return; // a panel is already up
+        sfx.click();
+        this.showPitch();
+      }),
     );
 
     // Step 3 → Step 4: begin once legal trading is finished.
@@ -235,6 +271,7 @@ export class SmugglingChoice extends createSystem({
     this.clock = 0;
     this.active = true;
     this.pitchShown = false;
+    this.encounterDone = false;
     this.dutchTobacco = 0;
     // Capture the Smuggler's current spot so he walks from wherever he stands,
     // and keep him hidden until the approach reveals him.
@@ -401,6 +438,7 @@ export class SmugglingChoice extends createSystem({
   /** Continue → Step 5 (and TradeShipArrival releases the camera hold). */
   private onContinue(): void {
     sfx.click();
+    this.encounterDone = true;
     this.setVisible(this.smugEntity, this.smugDoc, 'smug-root', false);
     objectiveTracker.completeSubTask('fall-choice');
     fallSequence.emitSmugglingComplete();
@@ -414,6 +452,8 @@ export class SmugglingChoice extends createSystem({
     rootId: string,
     visible: boolean,
   ): void {
+    if (rootId === 'smug-root') this.smugOpen = visible;
+    else if (rootId === 'dutch-root') this.dutchOpen = visible;
     if (entity?.object3D) entity.object3D.visible = visible;
     this.container(doc, rootId)?.setProperties({
       display: visible ? 'flex' : 'none',

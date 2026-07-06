@@ -79,7 +79,7 @@ import { RoyalDecreeSystem } from "./systems/RoyalDecreeSystem.js";
 // Fall — Step 3: trading with the Royal Trading Company (tax + import/export gap).
 import { ShipTrading } from "./systems/ShipTrading.js";
 // Fall — Step 4: the smuggling choice (Dutch buyer vs. Crown loyalty).
-import { SmugglingChoice } from "./systems/SmugglingChoice.js";
+import { SmugglingChoice, SmugglerNpc } from "./systems/SmugglingChoice.js";
 // Fall — Step 5: the ship departs, the Captain's farewell, and the Fall recap.
 import { TradeShipDeparture } from "./systems/TradeShipDeparture.js";
 // Winter (Consequences) — reads the three final scores on entry, shifts the
@@ -297,6 +297,8 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
   world.registerComponent(SpringNeighbor);
   // Winter (Consequences) prop tag — its score-driven entity collection.
   world.registerComponent(WinterProp);
+  // Fall Step 4 tag: clicking the Smuggler NPC re-opens his pitch panel.
+  world.registerComponent(SmugglerNpc);
 
   // NeedsSystem is registered BEFORE PhaseSystem on purpose: both listen to
   // gameState.onPhaseChanged, and listeners fire in subscription order. Running
