@@ -67,7 +67,7 @@ export class InventoryHudSystem extends createSystem({
         zOffset: 0.26,
       })
       // XR: float the goods readout to the lower-left in front of the headset.
-      .addComponent(HudAnchor, { offset: [-0.8, -0.62, -2.1] });
+      .addComponent(HudAnchor, { offset: [-0.8, -0.72, -2.1] });
 
     // (2) When the document is ready (now or later), grab it and paint the
     //     current counts. `true` replays for an already-loaded panel.

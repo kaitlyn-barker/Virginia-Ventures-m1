@@ -72,5 +72,7 @@
   <span class="controls-hint">Move: W A S D keys  -  Turn: Left / Right arrow keys  -  Click anyone with a gold ring to talk or trade.</span>
   <span class="controls-title">Move in VR Headset Mode</span>
   <span class="controls-hint">Move: Left thumbstick  -  Turn: Right thumbstick  -  Point a controller and pull the trigger to talk or trade.</span>
+  <span class="controls-title">Too much on screen?</span>
+  <span class="controls-hint">Press "Hide Panels" on the bar at the bottom to tuck your scoreboard and lists away. Press it again to bring them back. (Shortcut: B button in VR, H key on desktop.)</span>
   <button id="enter-colony">Enter the Colony</button>
 </div>

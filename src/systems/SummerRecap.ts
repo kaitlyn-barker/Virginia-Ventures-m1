@@ -133,9 +133,9 @@ export class SummerRecap extends createSystem({
         // the centered trade panel / recap modal render in front of it.
         zOffset: 0.26,
       })
-      // XR: mirror the inventory HUD ([-0.8, -0.62, -2.1]) on the opposite
+      // XR: mirror the inventory HUD ([-0.8, -0.72, -2.1]) on the opposite
       // (right) side of the view — same corner pairing as on desktop.
-      .addComponent(HudAnchor, { offset: [0.8, -0.62, -2.1] });
+      .addComponent(HudAnchor, { offset: [0.8, -0.72, -2.1] });
     this.finishEntity.object3D!.visible = false;
 
     // Wire the Done Trading button once its document loads; keep it hidden until

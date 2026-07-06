@@ -162,15 +162,19 @@ export class NeedsSystem extends createSystem({
         top: '290px',
         left: '24px',
         width: '320px',
-        height: '300px',
+        // 250px (not 300) so on short school screens (~768px tall) the panel's
+        // bottom edge clears the inventory counter anchored to the bottom-left
+        // corner — at 300px they overlapped and Summer needs were unreadable.
+        height: '250px',
         // Persistent Summer HUD: sit slightly farther than the default popup
         // depth (0.2) so the trade panel / recap render in front of it.
         zOffset: 0.26,
       })
-      // XR: float the needs checklist mid-left in front of the headset, below
-      // the score HUD ([-1.15, 0.5]) and narrator banner ([-1.15, 0.02]) that
-      // share the left column on desktop. Same 2.4m HUD shell.
-      .addComponent(HudAnchor, { offset: [-1.15, -0.5, -2.4] });
+      // XR: mid-left, between the score HUD above ([-1.15, 0.6]) and the
+      // inventory strip below ([-0.8, -0.72, -2.1]) — nudged farther left and
+      // out so the Summer needs checklist never sits behind the corn/tobacco/
+      // goods counter (they used to share the bottom-left corner and collide).
+      .addComponent(HudAnchor, { offset: [-1.35, -0.28, -2.5] });
 
     // Re-apply visibility when the player toggles the HUD layer.
     this.cleanupFuncs.push(hudSettings.onChanged(() => this.applyVisibility()));

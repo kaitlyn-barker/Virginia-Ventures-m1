@@ -164,11 +164,12 @@ export class SeasonBannerSystem extends createSystem({
     }
   }
 
-  /** Paint the HUD toggle tab to show the current state at a glance. */
+  /** Paint the panels toggle tab: plain words a 5th grader can act on — the
+   *  label always says what PRESSING it will do next. */
   private refreshHudTab(doc: UIKitDocument): void {
     const tab = doc.getElementById('hud-toggle') as UIKit.Text | null;
     tab?.setProperties({
-      text: hudSettings.visible ? 'HUD: on' : 'HUD: off',
+      text: hudSettings.visible ? 'Hide Panels' : 'Show Panels',
       backgroundColor: hudSettings.visible ? TAB_DONE_BG : TAB_LOCKED_BG,
       color: hudSettings.visible ? TAB_DONE_TEXT : TAB_LOCKED_TEXT,
       opacity: 1,

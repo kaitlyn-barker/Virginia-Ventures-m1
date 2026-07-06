@@ -218,6 +218,8 @@ export class ArrivalCinematic extends createSystem({
   private completeEmitted = false;
   /** Which caption shot is currently shown (avoids re-setting text every frame; -1 = none). */
   private shownShot = -1;
+  /** Whether the Skip button has been revealed (after the grace window). */
+  private skipShown = false;
 
   // Scratch vectors — allocate once, never per frame (VR frame-budget rule).
   private camPos!: Vector3;
@@ -303,6 +305,13 @@ export class ArrivalCinematic extends createSystem({
    *  to the end so an impatient player gets into the colony immediately. */
   private skip(): void {
     if (!this.running) return;
+    // GRACE PERIOD: ignore skips in the tour's first moments. The caption's
+    // Skip button appears in the same part of the view the "Enter the Colony"
+    // button just vacated, so a double-click (or a slow trigger release in VR)
+    // lands on Skip and kills the tour before its first shot is even seen —
+    // exactly the "the arrival video doesn't play" report. After 2.5s the
+    // press is unambiguous and skipping works as intended.
+    if (this.clock < 2.5) return;
     sfx.click();
     // Same finish path the tour reaches naturally; `browser` mirrors update().
     this.finish(!this.renderer.xr.isPresenting);
@@ -315,6 +324,10 @@ export class ArrivalCinematic extends createSystem({
     this.completeEmitted = false;
     this.shownShot = -1;
     this.xrShotApplied = -1;
+    this.skipShown = false;
+    // Keep the Skip button off-screen during the grace window (see skip()) so
+    // a player never sees a button that wouldn't respond yet.
+    this.setSkipVisible(false);
     this.setCaptionVisible(false);
     console.log('[Arrival] Entering the colony - orientation tour begins.');
   }
@@ -385,6 +398,17 @@ export class ArrivalCinematic extends createSystem({
     } else {
       this.showCaption(this.shotIndexAt(t));
     }
+
+    // Reveal the Skip button once the grace window has passed (see skip()).
+    if (!this.skipShown && t >= 2.5) {
+      this.skipShown = true;
+      this.setSkipVisible(true);
+    }
+  }
+
+  private setSkipVisible(visible: boolean): void {
+    (this.captionDoc?.getElementById('intro-skip') as UIKit.Text | null)
+      ?.setProperties({ display: visible ? 'flex' : 'none' });
   }
 
   /** Wrap up: hide the caption, drop the rig lock, hand control back. */

@@ -449,8 +449,9 @@ World.create(document.getElementById("scene-container") as HTMLDivElement, {
     })
     .addComponent(SeasonBanner)
     // XR: keep the season nav bar low and in front of the headset, below the
-    // dialogue/caption zone (-0.35..-0.45 at ~1.6m) so they never collide.
-    .addComponent(HudAnchor, { offset: [0, -0.72, -2.0] });
+    // dialogue/caption zone (-0.35..-0.45 at ~1.6m) and below the inventory /
+    // Done Trading strips (-0.72 at 2.1m) so none of them collide.
+    .addComponent(HudAnchor, { offset: [0, -0.9, -2.0] });
 
   // TEMP scaffolding: five placeholder markers (one per phase) so you can watch
   // the state machine enable exactly one group at a time. Remove this once the

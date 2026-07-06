@@ -158,7 +158,7 @@ export class ScoreHudSystem extends createSystem({
       // XR: float the score HUD to the upper-left in front of the headset.
       // Pushed out to 2.4m (angular size shrinks with distance) and wide of
       // center so the HUD layer frames the view instead of blocking it.
-      .addComponent(HudAnchor, { offset: [-1.15, 0.5, -2.4] });
+      .addComponent(HudAnchor, { offset: [-1.15, 0.6, -2.4] });
 
     // (2) Capture the document when it loads, paint once, set initial visibility.
     this.cleanupFuncs.push(

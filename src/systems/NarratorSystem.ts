@@ -78,9 +78,11 @@ export class NarratorSystem extends createSystem({
         height: '96px',
         zOffset: 0.26,
       })
-      // XR: float it under the score HUD in front of the headset (same 2.4m
-      // shell as the other HUDs so the layer stays out of the action).
-      .addComponent(HudAnchor, { offset: [-1.15, 0.02, -2.4] });
+      // XR: top-center, like a spoken announcement. It used to share the left
+      // column with the score HUD and needs checklist, but with all three (plus
+      // the inventory) stacked on one side they collided — the narrator is the
+      // one transient panel of the group, so it moves out of the column.
+      .addComponent(HudAnchor, { offset: [0, 0.55, -2.2] });
     this.entity.object3D!.visible = false;
 
     this.cleanupFuncs.push(
