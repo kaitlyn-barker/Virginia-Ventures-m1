@@ -45,6 +45,7 @@
  */
 
 import {
+  Follower,
   Vector3,
   createSystem,
   RayInteractable,
@@ -57,6 +58,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { arrivalSequence } from '../game/ArrivalSequence.js';
 import { gameState } from '../game/GameState.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
@@ -221,7 +223,12 @@ export class ArrivalCinematic extends createSystem({
         left: '15vw',
         width: '70vw',
         height: '34%',
-      });
+      })
+      // XR: ScreenSpace hands the panel back to world space at its (unset)
+      // Transform — the origin — so without this it sits at the player's feet.
+      // Keep the title card lower-center in front of the headset, same as the
+      // desktop layout.
+      .addComponent(Follower, hudFollow(this.player.head, [0, -0.35, -1.6]));
     this.captionEntity.object3D!.visible = false;
 
     // Grab the caption document when it loads; keep it hidden.

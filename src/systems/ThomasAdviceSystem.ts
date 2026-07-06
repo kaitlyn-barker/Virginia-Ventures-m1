@@ -37,6 +37,7 @@
  */
 
 import {
+  Follower,
   createComponent,
   createSystem,
   PanelDocument,
@@ -51,6 +52,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { springProgress } from '../game/SpringProgress.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
@@ -123,7 +125,11 @@ export class ThomasAdviceSystem extends createSystem({
         // In front of the bottom HUDs (inventory/banner at 0.26) but behind the
         // phase-transition overlay (0.14) and above the camera near-clip.
         zOffset: 0.18,
-      });
+      })
+      // XR: keep the dialogue box low and in front of the headset, matching its
+      // bottom-of-screen desktop placement. Without this it would land at the
+      // world origin (its Transform is never positioned).
+      .addComponent(Follower, hudFollow(this.player.head, [0, -0.35, -1.6]));
     this.panelEntity.object3D!.visible = false;
 
     // ── Find Thomas by name and tag him as the Spring advisor ────────────────

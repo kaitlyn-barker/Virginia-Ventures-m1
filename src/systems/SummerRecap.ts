@@ -12,6 +12,7 @@
  */
 
 import {
+  Follower,
   createSystem,
   RayInteractable,
   PanelDocument,
@@ -23,6 +24,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
 import { summerProgress } from '../game/SummerProgress.js';
@@ -87,7 +89,10 @@ export class SummerRecap extends createSystem({
         left: '22vw',
         width: '56vw',
         height: '68%',
-      });
+      })
+      // XR: center the recap in front of the headset (its Transform is never
+      // positioned, so without this it would land at the world origin).
+      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.7]));
     this.panelEntity.object3D!.visible = false;
 
     // Capture the doc + wire Continue when the panel loads; keep it hidden.
@@ -128,7 +133,10 @@ export class SummerRecap extends createSystem({
         // Persistent HUD: sit slightly farther than the default popup depth so
         // the centered trade panel / recap modal render in front of it.
         zOffset: 0.26,
-      });
+      })
+      // XR: mirror the inventory HUD ([-0.55, -0.5, -1.7]) on the opposite
+      // (right) side of the view — same corner pairing as on desktop.
+      .addComponent(Follower, hudFollow(this.player.head, [0.55, -0.5, -1.7]));
     this.finishEntity.object3D!.visible = false;
 
     // Wire the Done Trading button once its document loads; keep it hidden until

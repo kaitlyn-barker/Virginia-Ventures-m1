@@ -6,7 +6,7 @@ import mkcert from "vite-plugin-mkcert";
 
 export default defineConfig({
   plugins: [
-    mkcert(),
+    ...(process.env.IWSDK_NO_MKCERT ? [] : [mkcert()]),
     iwsdkDev({
       emulator: {
         device: "metaQuest3",

@@ -49,6 +49,7 @@
  */
 
 import {
+  Follower,
   Vector3,
   createSystem,
   PanelDocument,
@@ -61,6 +62,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { fallSequence } from '../game/FallSequence.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
@@ -219,7 +221,12 @@ export class TradeShipArrival extends createSystem({
         left: '15vw',
         width: '70vw',
         height: '20%',
-      });
+      })
+      // XR: ScreenSpace returns the caption to world space at its (unset)
+      // Transform — the origin — so without this the subtitles would sit at the
+      // player's feet. Keep them lower-center in front of the headset, matching
+      // the desktop framing.
+      .addComponent(Follower, hudFollow(this.player.head, [0, -0.4, -1.7]));
     this.captionEntity.object3D!.visible = false;
 
     // Grab the caption document when it loads; keep it hidden.

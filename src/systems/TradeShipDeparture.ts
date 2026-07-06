@@ -29,6 +29,7 @@
  */
 
 import {
+  Follower,
   Vector3,
   createSystem,
   RayInteractable,
@@ -41,6 +42,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { colonyScore, type ScoreSnapshot } from '../game/ColonyScore.js';
 import { fallSequence } from '../game/FallSequence.js';
@@ -131,7 +133,10 @@ export class TradeShipDeparture extends createSystem({
         left: '24vw',
         width: '52vw',
         height: '76%',
-      });
+      })
+      // XR: center the Fall recap in front of the headset (its Transform is
+      // never positioned, so without this it would land at the world origin).
+      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.7]));
     this.panelEntity.object3D!.visible = false;
 
     // Capture the doc + wire Continue when the panel loads.

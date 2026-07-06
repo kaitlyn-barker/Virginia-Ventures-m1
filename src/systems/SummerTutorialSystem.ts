@@ -14,6 +14,7 @@
  */
 
 import {
+  Follower,
   createSystem,
   RayInteractable,
   PanelDocument,
@@ -25,6 +26,7 @@ import {
   type Entity,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { summerProgress } from '../game/SummerProgress.js';
 import { relayoutScreenSpacePanels } from '../ui-relayout.js';
@@ -107,7 +109,10 @@ export class SummerTutorialSystem extends createSystem({
         left: '24vw',
         width: '52vw',
         height: '60%',
-      });
+      })
+      // XR: center the outline modal in front of the headset (its Transform is
+      // never positioned, so without this it would land at the world origin).
+      .addComponent(Follower, hudFollow(this.player.head, [0, 0, -1.7]));
     this.tutorialEntity.object3D!.visible = false;
 
     // Tip / script toast, hidden until needed.
@@ -125,7 +130,11 @@ export class SummerTutorialSystem extends createSystem({
         left: 'calc(50vw - 175px)',
         width: '350px',
         height: '23%',
-      });
+      })
+      // XR: park the toast low-center in front of the headset — under the trade
+      // panel (which sits world-space by the trader) and above the season nav
+      // bar at [0, -0.5, -1.7].
+      .addComponent(Follower, hudFollow(this.player.head, [0, -0.35, -1.65]));
     this.tipEntity.object3D!.visible = false;
 
     // Wire the outline's Begin button once its document loads.

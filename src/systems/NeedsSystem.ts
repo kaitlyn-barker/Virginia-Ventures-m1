@@ -31,6 +31,7 @@
 
 import {
   AudioUtils,
+  Follower,
   createSystem,
   Interactable,
   PanelDocument,
@@ -41,6 +42,7 @@ import {
   eq,
 } from '@iwsdk/core';
 
+import { hudFollow } from '../ui/hudFollow.js';
 import { gameState } from '../game/GameState.js';
 import { colonyScore } from '../game/ColonyScore.js';
 import { objectiveTracker } from '../game/ObjectiveTracker.js';
@@ -164,7 +166,11 @@ export class NeedsSystem extends createSystem({
         // Persistent Summer HUD: sit slightly farther than the default popup
         // depth (0.2) so the trade panel / recap render in front of it.
         zOffset: 0.26,
-      });
+      })
+      // XR: float the needs checklist mid-left in front of the headset, below
+      // the score HUD ([-0.95, 0.3]) and narrator banner ([-0.95, -0.05]) that
+      // share the left column on desktop.
+      .addComponent(Follower, hudFollow(this.player.head, [-0.95, -0.42, -1.95]));
 
     // (2) When the panel's document finishes loading (now or later), grab a
     //     reference and paint whatever state we're in. `true` replays for a
